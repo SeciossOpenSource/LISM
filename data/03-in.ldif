@@ -1,0 +1,104 @@
+dn: ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: cn=Admin,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Machine,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=Sales,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Tech,ou=Machine,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=Sales,ou=Machine,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: uid=user0301,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0301
+mail: user0301@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+userPassword: user0301
+cn: ユーザ0301
+o: IT(ou=IT,ou=People,ou=CSV,dc=lism,dc=com)
+
+dn: uid=user0302,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0302
+mail: user0302@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+userPassword: user0302
+cn: ユーザ0302
+o: IT(ou=IT,ou=People,ou=CSV,dc=lism,dc=com)
+
+dn: uid=user0303,ou=Sales,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0303
+mail: user0303@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+userPassword: user0303
+cn: ユーザ0303
+
+dn: uid=user0304,ou=Tech,ou=Machine,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0304
+mail: user0304@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+userPassword: user0304
+cn: ユーザ0304
+o: Machine(ou=Machine,ou=People,ou=CSV,dc=lism,dc=com)
+
+dn: uid=user(),ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user()
+mail: user()@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+userPassword: user()
+cn: ユーザ()
+
+dn: uid=ユーザ0305,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: ユーザ0305
+mail: user0305@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+userPassword: user0305
+cn: ユーザ0305

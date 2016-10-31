@@ -1,0 +1,7 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: SQL
+lismsyncerrmessage: uid=user0003,ou=sales,ou=it,ou=people,ou=sql,dc=lism,dc=co
+ m "The entry doesn't exist in cluster"

@@ -1,0 +1,31 @@
+#
+# master slapd config -- for testing
+#
+include $SCHEMA_DIR/core.schema
+include $SCHEMA_DIR/cosine.schema
+include $SCHEMA_DIR/nis.schema
+include $SCHEMA_DIR/inetorgperson.schema
+include $WD/conf/lism.schema
+
+schemacheck	off
+pidfile     $TESTDB/slapd.pid
+argsfile    $TESTDB/slapd.args
+
+#######################################################################
+# perl database definitions
+#######################################################################
+
+database        perl
+suffix          "$BASEDN"
+
+perlModulePath  ../lib
+perlModule      LISM
+basedn          "$BASEDN"
+admindn	        "$MANAGERDN"
+adminpw	        $PASSWD
+syncdir		$TEMPDIR
+sysloglevel	debug
+auditfacility	local5
+auditformat	"user=\"(.+)\" (.+)" "$1 $2"
+timeout		5
+conf	        $TEMPDIR/lism.conf

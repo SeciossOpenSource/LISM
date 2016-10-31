@@ -1,0 +1,208 @@
+#!/usr/bin/perl
+#
+#  This code was developped by SECIOSS (http://www.secioss.co.jp/).
+#
+#                 Copyright (C) 2016 SECIOSS, INC.
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU Lesser General Public License
+#  as published by the Free Software Foundation.
+
+use strict;
+use lib '../lib/perl';
+use Net::LDAP;
+use Net::LDAP::Constant;
+use POSIX qw(strftime);
+use Getopt::Std;
+use Config::General;
+use Data::Dumper;
+
+my %opt;
+getopts("d:f:b:o:c", \%opt);
+
+# Configuration
+my $CONF = $^O ne 'MSWin32' ? '/opt/secioss/etc/openldap/slapd.conf' : '/secioss/etc/lism-server.conf';
+
+my $config = Config::General->new($CONF);
+my %param = $config->getall;
+
+our $URI = 'ldap://localhost:3890';
+our $BINDDN = $param{'admindn'};
+our $BINDPW = $param{'adminpw'};
+our $SUFFIX = $param{'basedn'};
+
+# Attribute
+our $SYNCATTR = 'lismSyncStatus';
+our $NODEATTR = 'lismSyncErrNode';
+our $FILTERATTR = 'lismSyncFilter';
+our $BASEATTR = 'lismSyncBase';
+our $OPTATTR = 'lismCmdOption';
+
+sub updatesync
+{
+    my ($ldap, $dn, $nodes, $syncfilter, $base, $ops, $cflag) = @_;
+    my @modlist = ();
+
+    if ($nodes) {
+        push(@modlist, 'delete', [$NODEATTR => [split(/,/, $nodes)]]);
+    }
+
+    if ($syncfilter) {
+        push(@modlist, 'replace', [$FILTERATTR => $syncfilter]);
+    }
+
+    if ($base) {
+        push(@modlist, 'replace', [$BASEATTR => $base]);
+    }
+
+    if (!@modlist) {
+        push(@modlist, 'replace', [$SYNCATTR => 'sync']);
+    }
+
+    if ($ops) {
+        foreach my $op (split(//, $ops)) {
+            if ($op eq 'a') {
+                push(@modlist, 'replace', [$OPTATTR => 'add']);
+            } elsif ($op eq 'm') {
+                push(@modlist, 'replace', [$OPTATTR => 'modify']);
+            } elsif ($op eq 'd') {
+                push(@modlist, 'replace', [$OPTATTR => 'delete']);
+            }
+        }
+    }
+
+    if ($cflag) {
+        push(@modlist, 'replace', [$OPTATTR => 'continue']);
+    }
+
+    my $msg = $ldap->modify($dn, changes => [@modlist]);
+    my $errcode = $msg->code;
+    if ($errcode) {
+        print STDERR $msg->error."\n";
+        return 1;
+    }
+
+    return 0;
+}
+
+sub readsync
+{
+    my ($ldap, $dn, $nodes, $syncfilter, $base) = @_;
+    my $filter = '';
+
+    if ($nodes) {
+        foreach my $node (split(/,/, $nodes)) {
+            if ($filter) {
+                $filter = "(&$filter($NODEATTR=$node))";
+            } else {
+                $filter = "($NODEATTR=$node)";
+            }
+        }
+    }
+
+    if ($syncfilter) {
+        $syncfilter =~ s/\\/\\5C/g;
+        $syncfilter =~ s/\(/\\28/g;
+        $syncfilter =~ s/\)/\\29/g;
+        if ($filter) {
+            $filter = "(&$filter($FILTERATTR=$syncfilter))";
+        } else {
+            $filter = "($FILTERATTR=$syncfilter)";
+        }
+    }
+
+    if ($base) {
+        if ($filter) {
+            $filter = "(&$filter($BASEATTR=$base))";
+        } else {
+            $filter = "($BASEATTR=$base)";
+        }
+    }
+
+    if (!$filter) {
+        $filter = "(objectClass=*)";
+    }
+
+    my $msg = $ldap->search(base => $dn, filter => $filter, scope => 'base');
+    my $errcode = $msg->code;
+    if ($errcode) {
+        print STDERR $msg->error."\n";
+        return 1;
+    }
+    print "dn: $dn\n";
+
+    my $entry = $msg->entry(0);
+    my @attrs = $entry->attributes;
+    foreach my $attr (@attrs) {
+        foreach my $value ($entry->get_value($attr)) {
+            print "$attr: $value\n";
+        }
+    }
+
+    return 0;
+}
+
+sub usage
+{
+    print "Usage: lismsync [-d data] [-f filter] [-b base] [-o amd] [-c] {update|read} {all|master|cluster}\n";
+    exit 1
+}
+
+my $op = $ARGV[0];
+my $type = $ARGV[1];
+my $dn;
+my $nodes = '';
+my $syncfilter = '';
+my $base = '';
+my $ops = '';
+my $cflag = 0;
+my $rc = 0;
+
+if ($type eq 'all') {
+    $dn = "cn=sync,$SUFFIX";
+} elsif ($type eq 'master' || $type eq 'cluster') {
+    $dn = "cn=$type-sync,$SUFFIX";
+} else {
+    usage();
+}
+
+if (defined($opt{'d'})) {
+    $nodes = $opt{'d'};
+}
+if (defined($opt{'f'})) {
+    $syncfilter = $opt{'f'};
+}
+if (defined($opt{'b'})) {
+    $base = $opt{'b'};
+}
+if (defined($opt{'o'})) {
+    $ops = $opt{'o'};
+}
+if (defined($opt{'c'})) {
+    $cflag = 1;
+}
+
+my $ldap = Net::LDAP->new($URI);
+if (!defined($ldap)) {
+    print STDERR "Can't connect to LDAP server\n";
+    exit 1;
+}
+
+my $msg = $ldap->bind($BINDDN, password => $BINDPW);
+my $errcode = $msg->code;
+if($errcode) {
+    print STDERR $msg->error."\n";
+    exit 1;
+}
+
+if ($op eq 'update') {
+    $rc = updatesync($ldap, $dn, $nodes, $syncfilter, $base, $ops, $cflag);
+} elsif ($op eq 'read') {
+    $rc = readsync($ldap, $dn, $nodes, $syncfilter, $base);
+} else {
+    usage();
+}
+
+$ldap->unbind;
+
+exit $rc;

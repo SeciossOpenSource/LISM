@@ -1,0 +1,786 @@
+dn: dc=lism, dc=com
+objectclass: top
+dc: lism
+
+dn: ou=Master, dc=lism, dc=com
+ou: ldap
+objectclass: organizationalUnit
+description: Master LDAP Server
+
+dn: ou=cmplxdb, dc=lism, dc=com
+ou: cmplxdb
+objectclass: organizationalUnit
+description: SQL Server
+
+dn: ou=csv, dc=lism, dc=com
+ou: csv
+objectclass: organizationalUnit
+description: CSV File
+
+dn: ou=Company, ou=csv, dc=lism, dc=com
+ou: Company
+objectclass: organizationalUnit
+
+dn: ou=Computers, ou=csv, dc=lism, dc=com
+ou: Computers
+objectclass: organizationalUnit
+
+dn: ou=Groups, ou=csv, dc=lism, dc=com
+ou: Groups
+objectclass: organizationalUnit
+
+dn: ou=People, ou=csv, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: ou=Roles, ou=csv, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: c=Japan, ou=company, ou=csv, dc=lism, dc=com
+c: Japan
+objectclass: country
+
+dn: o=LISM-System, c=Japan, ou=company, ou=csv, dc=lism, dc=com
+objectclass: organization
+l: Japan
+o: LISM-System
+
+dn: ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Sales, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: uid=user0003, ou=Sales, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}Ne8EJWVf33hojcPlCvNQQYJIwMs=
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+
+dn: ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user(), ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user()
+cn: user()
+sn: user()
+mail: user()@lism.com
+
+dn: uid=user0001, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}gPaixIoYBwwvHwJVEjTiVgPSC/o=
+uid: user0001
+cn: csv0001
+sn: csv0001
+mail: user0001@lism.com
+
+dn: uid=user0002, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}6Il1hX1qfReg4HKwY4GtBS1+WTc=
+uid: user0002
+cn: user0002
+sn: user0002
+mail: user0002@lism.com
+
+dn: ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Sales, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Tech, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user0004, ou=Tech, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=IT,ou=Department,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}UrgAAkjiYxdsZZkDkvZhxfQKN2g=
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+
+dn: uid=user0005, ou=Tech, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+
+dn: ou=App, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: cn=Admin, ou=App, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest, ou=App, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: ou=Department, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Department
+
+dn: cn=IT, ou=Department, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalRole
+cn: IT
+
+dn: cn=Sales, ou=Department, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Sales
+
+dn: ou=ldap, dc=lism, dc=com
+ou: ldap
+objectclass: organizationalUnit
+description: Master LDAP Server
+
+dn: ou=People, ou=ldap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: People
+
+dn: ou=Roles, ou=ldap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Roles
+
+dn: ou=company, ou=ldap, dc=lism, dc=com
+ou: Company
+objectclass: organizationalUnit
+
+dn: c=japan, ou=company, ou=ldap, dc=lism, dc=com
+c: Japan
+objectclass: country
+
+dn: o=lism-system, c=japan, ou=company, ou=ldap, dc=lism, dc=com
+l: Japan
+objectclass: organization
+o: LISM-System
+
+dn: ou=computers, ou=ldap, dc=lism, dc=com
+ou: Computers
+objectclass: organizationalUnit
+
+dn: ou=it, ou=people, ou=ldap, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user(), ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}1nHnhp4o0zOnJPee4v4mrw==
+uid: user()
+cn: user()
+sn: user()
+mail: user()@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+mail: user0001@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0002, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}Nv/40W3iILYSLmdbHnKvwQ==
+uid: user0002
+cn: user0002
+sn: user0002
+mail: user0002@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=machine, ou=people, ou=ldap, dc=lism, dc=com
+ou: Machine
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=machine, ou=people, ou=ldap, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=machine, ou=people, ou=ldap, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=ldap, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=ldap,dc=lism,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,ou=ldap,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=ldap, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=app, ou=roles, ou=ldap, dc=lism, dc=com
+ou: App
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=app, ou=roles, ou=ldap, dc=lism, dc=com
+cn: Admin
+objectclass: organizationalRole
+
+dn: cn=guest, ou=app, ou=roles, ou=ldap, dc=lism, dc=com
+cn: Guest
+objectclass: organizationalRole
+
+dn: ou=department, ou=roles, ou=ldap, dc=lism, dc=com
+ou: Department
+objectclass: organizationalUnit
+
+dn: cn=it, ou=department, ou=roles, ou=ldap, dc=lism, dc=com
+cn: IT
+objectclass: organizationalRole
+
+dn: cn=sales, ou=department, ou=roles, ou=ldap, dc=lism, dc=com
+cn: Sales
+objectclass: organizationalRole
+
+dn: ou=People, ou=master, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: People
+
+dn: ou=Roles, ou=master, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Roles
+
+dn: ou=company, ou=master, dc=lism, dc=com
+ou: Company
+objectclass: organizationalUnit
+
+dn: c=japan, ou=company, ou=master, dc=lism, dc=com
+c: Japan
+objectclass: country
+
+dn: o=lism-system, c=japan, ou=company, ou=master, dc=lism, dc=com
+l: Japan
+objectclass: organization
+o: LISM-System
+
+dn: ou=computers, ou=master, dc=lism, dc=com
+ou: Computers
+objectclass: organizationalUnit
+
+dn: ou=it, ou=people, ou=master, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=it, ou=people, ou=master, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user(), ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}1nHnhp4o0zOnJPee4v4mrw==
+uid: user()
+cn: user()
+sn: user()
+mail: user()@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+mail: user0001@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0002, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}Nv/40W3iILYSLmdbHnKvwQ==
+uid: user0002
+cn: user0002
+sn: user0002
+mail: user0002@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=machine, ou=people, ou=master, dc=lism, dc=com
+ou: Machine
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=machine, ou=people, ou=master, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=machine, ou=people, ou=master, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=master, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=master,dc=lism,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,ou=master,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=master, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=app, ou=roles, ou=master, dc=lism, dc=com
+ou: App
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=app, ou=roles, ou=master, dc=lism, dc=com
+cn: Admin
+objectclass: organizationalRole
+
+dn: cn=guest, ou=app, ou=roles, ou=master, dc=lism, dc=com
+cn: Guest
+objectclass: organizationalRole
+
+dn: ou=department, ou=roles, ou=master, dc=lism, dc=com
+ou: Department
+objectclass: organizationalUnit
+
+dn: cn=it, ou=department, ou=roles, ou=master, dc=lism, dc=com
+cn: IT
+objectclass: organizationalRole
+
+dn: cn=sales, ou=department, ou=roles, ou=master, dc=lism, dc=com
+cn: Sales
+objectclass: organizationalRole
+
+dn: ou=slave, dc=lism, dc=com
+ou: slave
+objectclass: organizationalUnit
+description: Slave LDAP Server
+
+dn: ou=People, ou=slave, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: People
+
+dn: ou=Roles, ou=slave, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Roles
+
+dn: ou=company, ou=slave, dc=lism, dc=com
+ou: Company
+objectclass: organizationalUnit
+
+dn: c=japan, ou=company, ou=slave, dc=lism, dc=com
+c: Japan
+objectclass: country
+
+dn: o=lism-system, c=japan, ou=company, ou=slave, dc=lism, dc=com
+l: Japan
+objectclass: organization
+o: LISM-System
+
+dn: ou=computers, ou=slave, dc=lism, dc=com
+ou: Computers
+objectclass: organizationalUnit
+
+dn: ou=it, ou=people, ou=slave, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=it, ou=people, ou=slave, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=slave, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=tech, ou=it, ou=people, ou=slave, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user(), ou=tech, ou=it, ou=people, ou=slave, dc=lism, dc=com
+userpassword: {MD5}1nHnhp4o0zOnJPee4v4mrw==
+uid: user()
+cn: user()
+sn: user()
+mail: user()@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=slave, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+mail: user0001@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0002, ou=tech, ou=it, ou=people, ou=slave, dc=lism, dc=com
+userpassword: {MD5}Nv/40W3iILYSLmdbHnKvwQ==
+uid: user0002
+cn: user0002
+sn: user0002
+mail: user0002@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=machine, ou=people, ou=slave, dc=lism, dc=com
+ou: Machine
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=machine, ou=people, ou=slave, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=machine, ou=people, ou=slave, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=slave, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=slave,dc=lism,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,ou=slave,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=slave, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=app, ou=roles, ou=slave, dc=lism, dc=com
+ou: App
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=app, ou=roles, ou=slave, dc=lism, dc=com
+cn: Admin
+objectclass: organizationalRole
+
+dn: cn=guest, ou=app, ou=roles, ou=slave, dc=lism, dc=com
+cn: Guest
+objectclass: organizationalRole
+
+dn: ou=department, ou=roles, ou=slave, dc=lism, dc=com
+ou: Department
+objectclass: organizationalUnit
+
+dn: cn=it, ou=department, ou=roles, ou=slave, dc=lism, dc=com
+cn: IT
+objectclass: organizationalRole
+
+dn: cn=sales, ou=department, ou=roles, ou=slave, dc=lism, dc=com
+cn: Sales
+objectclass: organizationalRole
+
+dn: ou=soap, dc=lism, dc=com
+ou: soap
+objectclass: organizationalUnit
+
+dn: ou=People, ou=soap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: People
+
+dn: ou=Roles, ou=soap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Roles
+
+dn: ou=company, ou=soap, dc=lism, dc=com
+ou: Company
+objectclass: organizationalUnit
+
+dn: c=japan, ou=company, ou=soap, dc=lism, dc=com
+c: Japan
+objectclass: country
+
+dn: o=lism-system, c=japan, ou=company, ou=soap, dc=lism, dc=com
+l: Japan
+objectclass: organization
+o: LISM-System
+
+dn: ou=computers, ou=soap, dc=lism, dc=com
+ou: Computers
+objectclass: organizationalUnit
+
+dn: ou=it, ou=people, ou=soap, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=it, ou=people, ou=soap, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user(), ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}1nHnhp4o0zOnJPee4v4mrw==
+uid: user()
+cn: user()
+sn: user()
+mail: user()@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+mail: user0001@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0002, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}Nv/40W3iILYSLmdbHnKvwQ==
+uid: user0002
+cn: user0002
+sn: user0002
+mail: user0002@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=machine, ou=people, ou=soap, dc=lism, dc=com
+ou: Machine
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=machine, ou=people, ou=soap, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=machine, ou=people, ou=soap, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=soap, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,dc=example,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,dc=example,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=soap, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=app, ou=roles, ou=soap, dc=lism, dc=com
+ou: App
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=app, ou=roles, ou=soap, dc=lism, dc=com
+cn: Admin
+objectclass: organizationalRole
+
+dn: cn=guest, ou=app, ou=roles, ou=soap, dc=lism, dc=com
+cn: Guest
+objectclass: organizationalRole
+
+dn: ou=department, ou=roles, ou=soap, dc=lism, dc=com
+ou: Department
+objectclass: organizationalUnit
+
+dn: cn=it, ou=department, ou=roles, ou=soap, dc=lism, dc=com
+cn: IT
+objectclass: organizationalRole
+
+dn: cn=sales, ou=department, ou=roles, ou=soap, dc=lism, dc=com
+cn: Sales
+objectclass: organizationalRole
+
+dn: ou=sql, dc=lism, dc=com
+ou: sql
+objectclass: organizationalUnit
+description: SQL Server
+
+dn: ou=Groups, ou=sql, dc=lism, dc=com
+ou: Groups
+objectclass: organizationalUnit
+
+dn: ou=People, ou=sql, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: ou=Roles, ou=sql, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Sales, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: uid=user0003, ou=Sales, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+mail: user0003@lism.com
+
+dn: ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user(), ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}1nHnhp4o0zOnJPee4v4mrw==
+uid: user()
+mail: user()@lism.com
+
+dn: uid=user0001, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+mail: user0001@lism.com
+
+dn: uid=user0002, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}Nv/40W3iILYSLmdbHnKvwQ==
+uid: user0002
+mail: user0002@lism.com
+
+dn: ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Sales, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Tech, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user0004, ou=Tech, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+telephonenumber: 23-4567-8901
+mail: user0004@lism.com
+
+dn: ou=App, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: cn=Admin, ou=App, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest, ou=App, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: ou=Department, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Department
+
+dn: cn=IT, ou=Department, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalRole
+cn: IT
+
+dn: cn=Sales, ou=Department, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Sales
+
+dn: ou=it, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: it
+
+dn: ou=machine, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: machine

@@ -1,0 +1,24 @@
+dn: cn=Mail-Server, ou=computers, ou=csv, dc=lism, dc=com
+objectclass: device
+l: Japan
+cn: Mail-Server
+
+dn: cn=mail-server, c=japan, ou=computers, ou=ldap, dc=lism, dc=com
+l: Japan
+cn: Mail-Server
+objectclass: device
+
+dn: cn=mail-server, c=japan, ou=computers, ou=master, dc=lism, dc=com
+l: Japan
+cn: Mail-Server
+objectclass: device
+
+dn: cn=mail-server, c=japan, ou=computers, ou=slave, dc=lism, dc=com
+l: Japan
+cn: Mail-Server
+objectclass: device
+
+dn: cn=mail-server, c=japan, ou=computers, ou=soap, dc=lism, dc=com
+l: Japan
+cn: Mail-Server
+objectclass: device

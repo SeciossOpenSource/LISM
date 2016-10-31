@@ -1,0 +1,14 @@
+dn: uid=user0201, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}IXMUBHguWc9galVhEZ8stw==
+uid: user0201
+cn:: 44Om44O844K2MDIwMQ==
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+businesscategory: cn=Admin,ou=App,ou=Roles,ou=ldap,dc=lism,dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=ldap,dc=lism,dc=com
+sn:: 44Om44O844K2MDIwMQ==
+employeetype:: 5rS+6YGj
+mail: user0201@lism.org

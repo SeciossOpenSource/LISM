@@ -1,0 +1,6 @@
+dn: uid=user0101, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}ZnlrYFJ9AWVDDLVRuMvxRA==
+uid: user0101
+cn:: J+abtOaWsCfjg6bjg7zjgrYwMTAx

@@ -1,0 +1,11 @@
+dn: ou=Roles, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: ou=Sales, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Tech, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech

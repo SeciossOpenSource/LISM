@@ -1,0 +1,15 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrnode: SQL
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=sql,dc=lism,dc=com
+  "The value is inconsistent in master: attr='telephoneNumber' expect='01-2345
+ -6789;12-3456-7890;23-4567-8910' current='01-2345-6789;12-3456-7890'"
+lismsyncerrmessage: uid=user0003,ou=sales,ou=it,ou=people,ou=csv,dc=lism,dc=co
+ m "The value is inconsistent in cluster: attr='sn' expect='user0003' current=
+ 'csv0003'"
+lismsyncerrmessage: uid=user0003,ou=sales,ou=it,ou=people,ou=csv,dc=lism,dc=co
+ m "The value is inconsistent in master: attr='sn' expect='csv0003' current='u
+ ser0003'"

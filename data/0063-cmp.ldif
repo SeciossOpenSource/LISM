@@ -1,0 +1,10 @@
+dn: cn=cluster-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: cluster-sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrnode: Slave
+lismsyncerrmessage: cn=mail-server,c=japan,ou=computers,ou=slave,dc=lism,dc=co
+ m "The entry may be invalid in cluster"
+lismsyncerrmessage: cn=mail-server,ou=computers,ou=csv,dc=lism,dc=com "The ent
+ ry may be invalid in cluster"

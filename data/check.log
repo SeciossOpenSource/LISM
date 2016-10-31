@@ -1,0 +1,5 @@
+cn=u in uid=user1401,ou=check,ou=master,dc=lism,dc=com is too short
+givenName in uid=user1401,ou=check,ou=master,dc=lism,dc=com is required value
+ou=Dummy in cn=user1402,ou=check,ou=master,dc=lism,dc=com is invalid: value doesn't exist in data
+cn=user1402 in cn=user1402,ou=check,ou=master,dc=lism,dc=com is too long
+sn=dummy in cn=user1402,ou=check,ou=master,dc=lism,dc=com is invalid: function is checkSurename

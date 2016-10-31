@@ -1,0 +1,17 @@
+dn: ou=Tech, ou=IT, ou=People, ou=SQL, dc=lism, dc=com
+objectclass: organizationalUnit
+
+dn: uid=user(), ou=Tech, ou=IT, ou=People, ou=SQL, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user()
+
+dn: uid=user0101, ou=Tech, ou=IT, ou=People, ou=SQL, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0101
+
+dn: uid=user0102, ou=Tech, ou=IT, ou=People, ou=SQL, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0102

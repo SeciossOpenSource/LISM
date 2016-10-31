@@ -1,0 +1,4 @@
+dn: cn=Group111, cn=Unit11, cn=Department1, ou=Groups, ou=sql, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Group111
+description: Group111

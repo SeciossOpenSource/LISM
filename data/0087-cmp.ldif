@@ -1,0 +1,37 @@
+dn: ou=services, ou=slave, dc=lism, dc=com
+ou: Services
+objectclass: organizationalUnit
+
+dn: ou=it, ou=services, ou=slave, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=it, ou=services, ou=slave, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=tech, ou=it, ou=services, ou=slave, dc=lism, dc=com
+ou: sync
+cn: admin
+objectclass: organizationalRole
+
+dn: uid=syncuser0001, ou=tech, ou=it, ou=services, ou=slave, dc=lism, dc=com
+userpassword: {MD5}pimOAHA68XVf4UwBd5Fviw==
+uid: syncuser0001
+cn: syncuser0001
+sn: syncuser0001
+mail: syncuser0001@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=machine, ou=services, ou=slave, dc=lism, dc=com
+ou: Machine
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=machine, ou=services, ou=slave, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=tech, ou=machine, ou=services, ou=slave, dc=lism, dc=com
+cn: admin
+objectclass: organizationalRole

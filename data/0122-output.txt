@@ -1,0 +1,16 @@
+dn: uid=user0101,ou=tech,ou=it,ou=people,ou=sql,dc=lism,dc=com
+$VAR1 = {
+          'param2' => {
+                      'value' => 'val2'
+                    },
+          'pset' => {
+                    'value' => 'pset',
+                    'type' => 'paramset'
+                  },
+          'param1' => {
+                      'value' => 'val1'
+                    },
+          'op' => {
+                  'value' => 'delete'
+                }
+        };

@@ -1,0 +1,9 @@
+dn: uid=user0202, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}dx+ii+LxA0X95kxGeYnkbw==
+uid: user0202
+cn:: 5pS56KGMCuODpuODvOOCtjAyMDI=
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+sn:: 5pS56KGMCuODpuODvOOCtjAyMDI=
+mail: user0202@lism.com

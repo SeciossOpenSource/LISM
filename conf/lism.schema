@@ -1,0 +1,98 @@
+#  This work is part of LISM Software (http://www.secioss.co.jp/).
+#
+#                 Copyright (C) 2016 SECIOSS, INC.
+#
+#  you can redistribute it and/or modify it under the terms of 
+#  the GNU Lesser General Public License as published by the Free 
+#  Software Foundation.
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.1 NAME 'lismSyncStatus'
+        DESC 'Synchronization Status'
+        EQUALITY caseIgnoreIA5Match
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+        SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.2 NAME 'lismSyncErrNode'
+        DESC 'Node has inconsistent data'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.3 NAME 'lismSyncErrMessage'
+        DESC 'Error message about inconsistent data'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.4 NAME 'lismSyncFilter'
+        DESC 'Filter of synchronization'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+        SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.5 NAME 'lismSyncBase'
+        DESC 'Base DN of synchronization'
+        EQUALITY distinguishedNameMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+        SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.6 NAME 'lismClusterMaster'
+        DESC 'Clustering Master Node'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+        SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.7 NAME 'lismClusterNode'
+        DESC 'Clustering Node'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.8 NAME 'lismClusterActive'
+        DESC 'Clustering Active Node'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.9 NAME 'lismConfigOperation'
+        DESC 'Configuration Operation'
+        EQUALITY caseIgnoreIA5Match
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
+        SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.10 NAME 'lismCmdOption'
+        DESC 'LISM command option'
+        EQUALITY caseIgnoreIA5Match
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.11 NAME 'lismParentDN'
+        DESC 'Parent DN of entry'
+        EQUALITY distinguishedNameMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+        SINGLE-VALUE )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.12 NAME 'lismControl'
+        DESC 'LISM Control'
+        EQUALITY caseIgnoreMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
+attributetype ( 1.3.6.1.4.1.29247.2.3.1.13 NAME 'memberOf'
+        DESC 'memberOf'
+        EQUALITY distinguishedNameMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
+
+objectclass ( 1.3.6.1.4.1.29247.2.4.1.1 NAME 'lismSync'
+        DESC 'LISM Synchronization Information'
+        SUP top STRUCTURAL
+        MUST cn
+        MAY ( lismSyncStatus $ lismSyncErrNode $ lismSyncErrMessage $
+              lismSyncFilter $ lismSyncBase $ lismCmdOption ) )
+
+objectclass ( 1.3.6.1.4.1.29247.2.4.1.2 NAME 'lismCluster'
+        DESC 'LISM Cluster Information'
+        SUP top STRUCTURAL
+        MUST cn
+        MAY ( lismClusterMaster $ lismClusterNode $ lismClusterActive $
+              lismCmdOption ) )
+
+objectclass ( 1.3.6.1.4.1.29247.2.4.1.3 NAME 'lismConfig'
+        DESC 'LISM Configuration'
+        SUP top STRUCTURAL
+        MUST cn
+        MAY ( lismConfigOperation ) )

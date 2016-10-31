@@ -1,0 +1,20 @@
+dn: ou=Check,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Check
+
+dn: uid=user1401,ou=Check,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user1401
+cn: u
+sn: user1401
+ou: Check
+
+dn: cn=user1402,ou=Check,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user1402
+cn: user1402
+sn: dummy
+givenName: 1402
+ou: Dummy

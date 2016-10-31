@@ -1,0 +1,108 @@
+dn: ou=cmplxdb, dc=lism, dc=com
+ou: cmplxdb
+objectclass: organizationalUnit
+description: SQL Server
+
+dn: ou=IT, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Roles, ou=IT, ou=cmplxdb, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: cn=Admin, ou=Roles, ou=IT, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest, ou=Roles, ou=IT, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: ou=Sales, ou=IT, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=People, ou=Sales, ou=IT, ou=cmplxdb, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: ou=Tech, ou=IT, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=People, ou=Tech, ou=IT, ou=cmplxdb, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: uid=user0020, ou=People, ou=Tech, ou=IT, ou=cmplxdb, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}9r4WwVp5H4f4Vc4uFPcsQw==
+uid: user0020
+cn: user0020
+mail: user0020@lism.com
+
+dn: ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Roles, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: cn=Sales, ou=Roles, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Sales
+
+dn: cn=Tech, ou=Roles, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Tech
+
+dn: cn=Unit1, cn=Tech, ou=Roles, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit1
+
+dn: cn=Group1, cn=Unit1, cn=Tech, ou=Roles, ou=Machine, ou=cmplxdb, dc=lism, d
+ c=com
+objectclass: organizationalRole
+cn: Group1
+
+dn: cn=Manager, cn=Group1, cn=Unit1, cn=Tech, ou=Roles, ou=Machine, ou=cmplxdb
+ , dc=lism, dc=com
+objectclass: organizationalRole
+cn: Manager
+
+dn: ou=Sales, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=People, ou=Sales, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: uid=user0021, ou=People, ou=Sales, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=Roles,ou=IT,ou=cmplxdb,dc=lism,dc=com
+businesscategory: cn=Sales,ou=Roles,ou=Machine,ou=cmplxdb,dc=lism,dc=com
+userpassword: {MD5}YFcRt5HvvEkuCz3FhCS0gw==
+uid: user0021
+cn: user0021
+mail: user0021@lism.com
+
+dn: ou=Tech, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=People, ou=Tech, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: ou=Support, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Support
+
+dn: ou=Roles, ou=Support, ou=cmplxdb, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit

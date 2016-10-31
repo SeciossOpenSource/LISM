@@ -1,0 +1,43 @@
+dn: ou=Groups, ou=CSV, dc=lism, dc=com
+ou: Groups
+objectclass: organizationalUnit
+
+dn: cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Department1
+
+dn: cn=Unit11, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit11
+
+dn: cn=Group111, cn=Unit11, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Group111
+
+dn: cn=Unit12, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit12
+
+dn: cn=Group121, cn=Unit12, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Group121
+
+dn: cn=Department2, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Department2
+
+dn: cn=Unit21, cn=Department2, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit21
+
+dn: cn=Group211, cn=Unit21, cn=Department2, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Group211
+
+dn: cn=Unit22, cn=Department2, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit22
+
+dn: cn=Group221, cn=Unit22, cn=Department2, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Group221

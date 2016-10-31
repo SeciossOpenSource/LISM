@@ -1,0 +1,24 @@
+dn: cn=group01, ou=groups, ou=ldap, dc=lism, dc=com
+cn: group01
+objectclass: posixGroup
+gidnumber: 5001
+
+dn: cn=group02, ou=groups, ou=ldap, dc=lism, dc=com
+cn: group02
+objectclass: posixGroup
+gidnumber: 2002
+
+dn: cn=group03, ou=groups, ou=ldap, dc=lism, dc=com
+cn: group03
+objectclass: posixGroup
+gidnumber: 4003
+
+dn: cn=group04, ou=groups, ou=ldap, dc=lism, dc=com
+cn: group04
+objectclass: posixGroup
+gidnumber: 8004
+
+dn: cn=group05, ou=groups, ou=ldap, dc=lism, dc=com
+cn: group05
+objectclass: posixGroup
+gidnumber: 6005

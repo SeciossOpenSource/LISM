@@ -1,0 +1,47 @@
+dn: ou=Services,ou=Master,dc=lism,dc=com
+objectClass: organizationalUnit
+ou: Services
+
+dn: ou=IT,ou=Services,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Machine,ou=Services,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Tech,ou=IT,ou=Services,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=Tech,ou=Machine,ou=Services,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: cn=admin,ou=Tech,ou=IT,ou=Services,ou=Master,dc=lism,dc=com
+objectClass: organizationalRole
+cn: admin
+ou: sync
+
+dn: cn=admin,ou=Tech,ou=Machine,ou=Services,ou=Master,dc=lism,dc=com
+objectClass: organizationalRole
+cn: admin
+
+dn: uid=syncuser0001,ou=Tech,ou=IT,ou=Services,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: syncuser0001
+mail: syncuser0001@lism.com
+userPassword: syncuser0001
+cn: syncuser0001
+sn: syncuser0001
+
+dn: uid=syncuser0002,ou=Tech,ou=Machine,ou=Services,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: syncuser0002
+mail: syncuser0002@lism.com
+userPassword: syncuser0002
+cn: syncuser0002
+sn: syncuser0002
+

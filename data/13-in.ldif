@@ -1,0 +1,42 @@
+dn: ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user1301,ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+objectclass: Account
+uid: user1301
+mail: user1301@lism.com
+userPassword: user1301
+
+dn: cn=user1302,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+objectclass: Account
+uid: user1302
+cn: user1302
+mail: user1302@lism.com
+userPassword: user1302
+
+dn: cn=user1303,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+objectclass: Account
+uid: user1303
+cn: user1303
+sn: user1303
+mail: user1303@lism.com
+userPassword: user1303
+
+dn: mail=user1304@lism.com,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+uid: user1304
+cn: user1304
+sn: user1304
+mail: user1304@lism.com

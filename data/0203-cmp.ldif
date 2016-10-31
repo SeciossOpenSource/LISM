@@ -1,0 +1,4 @@
+dn: ou=ldap, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly
+description: attrOnly

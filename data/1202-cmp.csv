@@ -1,0 +1,5 @@
+cn=Manager,ou=app,ou=roles,ou=csv,dc=lism,dc=com:Manager:ou=app,ou=roles,ou=csv,dc=lism,dc=com:cn=Manager:
+cn=Anonymous,ou=app,ou=roles,ou=csv,dc=lism,dc=com:Anonymous:ou=app,ou=roles,ou=csv,dc=lism,dc=com:cn=Anonymous:
+cn=Employee,ou=app,ou=roles,ou=csv,dc=lism,dc=com:Employee:ou=app,ou=roles,ou=csv,dc=lism,dc=com:cn=Employee:
+cn=developer,ou=app,ou=roles,ou=csv,dc=lism,dc=com:Developer:ou=app,ou=roles,ou=csv,dc=lism,dc=com:cn=developer:
+cn=maintainer,ou=app,ou=roles,ou=csv,dc=lism,dc=com:Maintainer:ou=app,ou=roles,ou=csv,dc=lism,dc=com:cn=maintainer:

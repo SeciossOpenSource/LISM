@@ -1,0 +1,51 @@
+dn: uid=user0003, ou=Sales, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}Ne8EJWVf33hojcPlCvNQQYJIwMs=
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=slave, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0003, ou=Sales, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+mail: user0003@lism.com

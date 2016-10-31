@@ -1,0 +1,4 @@
+dn: cn=cluster-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: cluster-sync
+lismsyncstatus: sync

@@ -1,0 +1,19 @@
+dn: ou=Company, ou=csv, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly
+
+dn: ou=Computers, ou=csv, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly
+
+dn: ou=Groups, ou=csv, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly
+
+dn: ou=People, ou=csv, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly
+
+dn: ou=Roles, ou=csv, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly

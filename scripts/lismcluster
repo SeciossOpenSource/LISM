@@ -1,0 +1,97 @@
+#!/bin/sh
+#
+#  This code was developped by SECIOSS (http://www.secioss.co.jp/).
+#
+#                 Copyright (C) 2016 SECIOSS, INC.
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU Lesser General Public License
+#  as published by the Free Software Foundation.
+
+CONF=/opt/secioss/etc/openldap/slapd.conf
+URI=ldap://localhost:3890
+ACTIVEATTR=lismClusterActive
+MASTERATTR=lismClusterMaster
+DATAATTR=lismClusterNode
+OPTATTR=lismCmdOption
+
+BINDDN=`sed -n 's/^admindn\s*"*\([^"]*\)"*$/\1/p' $CONF`
+BINDPW=`sed -n 's/^adminpw\s*"*\([^"]*\)"*$/\1/p' $CONF`
+SUFFIX=`sed -n 's/^basedn\s*"*\([^"]*\)"*$/\1/p' $CONF`
+DN="cn=cluster,$SUFFIX"
+
+data=$2
+
+function addcluster() {
+    modlist="add: $ACTIVEATTR"
+    for d in `echo $data | sed "s/,/\n/"`; do
+        modlist="$modlist
+$ACTIVEATTR: $d"
+    done
+
+    if [ -n "$1" ]; then
+        modlist="$modlist
+-
+replace: $OPTATTR
+$OPTATTR: $1"
+    fi
+
+    ldapmodify -x -H $URI -D "$BINDDN" -w "$BINDPW" \
+<< CLUSTER
+dn: $DN
+changetype: modify
+$modlist
+CLUSTER
+}
+
+function deletecluster() {
+    modlist="delete: $ACTIVEATTR"
+    for d in `echo $data | sed "s/,/\n/"`; do
+        modlist="$modlist
+$ACTIVEATTR: $d"
+    done
+
+    ldapmodify -x -H $URI -D "$BINDDN" -w "$BINDPW" \
+<< CLUSTER
+dn: $DN
+changetype: modify
+$modlist
+CLUSTER
+}
+
+function readcluster() {
+    ldapsearch -x -LLL -H $URI -D "$BINDDN" -w "$BINDPW" -b "$DN" -s base
+}
+
+function usage() {
+    echo $"Usage: $0 {add|addonly|delete|read} [data]"
+    exit 1
+}
+
+case "$1" in
+    add)
+        if [ -z "$data" ]; then
+            usage
+        fi
+        addcluster
+        ;;
+    addonly)
+        if [ -z "$data" ]; then
+            usage
+        fi
+        addcluster nosync
+        ;;
+    delete)
+        if [ -z "$data" ]; then
+            usage
+        fi
+        deletecluster
+        ;;
+    read)
+        readcluster
+        ;;
+    *)
+        usage
+esac
+
+exit 0

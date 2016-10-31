@@ -1,0 +1,12 @@
+dn: ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+objectclass: organizationalUnit
+
+dn: uid=user0401, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+uid: user0401
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0402, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+uid: user0402
+objectclass: inetOrgPerson
+objectclass: person

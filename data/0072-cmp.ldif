@@ -1,0 +1,40 @@
+dn: ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Roles, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: cn=Admin, ou=Roles, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+description: Administrator
+
+dn: cn=Guest, ou=Roles, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: ou=Sales, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=People, ou=Sales, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: ou=Tech, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=People, ou=Tech, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: uid=user0020, ou=People, ou=Tech, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}9r4WwVp5H4f4Vc4uFPcsQw==
+uid: user0020
+cn: user0020
+mail: user0020@lism.org

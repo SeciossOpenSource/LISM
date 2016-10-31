@@ -1,0 +1,34 @@
+dn: uid=user(), ou=Tech, ou=IT, ou=People, ou=CSV, dc=lism, dc=com
+objectclass: attrOnly
+businesscategory: attrOnly
+userpassword: attrOnly
+uid: attrOnly
+telephonenumber: attrOnly
+cn: attrOnly
+mail: attrOnly
+
+dn: uid=user0301, ou=Tech, ou=IT, ou=People, ou=CSV, dc=lism, dc=com
+objectclass: attrOnly
+userpassword: attrOnly
+uid: attrOnly
+cn: attrOnly
+o: attrOnly
+
+dn: uid=user0302, ou=Tech, ou=IT, ou=People, ou=CSV, dc=lism, dc=com
+objectclass: attrOnly
+businesscategory: attrOnly
+userpassword: attrOnly
+uid: attrOnly
+telephonenumber: attrOnly
+cn: attrOnly
+mail: attrOnly
+o: attrOnly
+
+dn: uid=ユーザ0305, ou=Tech, ou=IT, ou=People, ou=CSV, dc=lism, dc=com
+objectclass: attrOnly
+businesscategory: attrOnly
+userpassword: attrOnly
+uid: attrOnly
+telephonenumber: attrOnly
+cn: attrOnly
+mail: attrOnly

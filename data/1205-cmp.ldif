@@ -1,0 +1,10 @@
+dn: uid=orguser1202, ou=Tech, ou=IT, ou=People, ou=CSV, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}8UIkq7D8KPnZj/EcRQqUDmT5/Z4=
+uid: orguser1202
+ou: Tech
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MTIwMg==
+mail: orguser1202@tech.lism.com

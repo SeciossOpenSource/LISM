@@ -1,0 +1,39 @@
+dn: uid=user0005, ou=Tech, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=ldap, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=master, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=slave, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=soap, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person

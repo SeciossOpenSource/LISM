@@ -1,0 +1,51 @@
+dn: uid=user0006, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}oiY5DWmcId8K3AMHoO9hngc++R8=
+uid: user0006
+cn: csv0006
+sn: csv0006
+mail: user0006@lism.com
+
+dn: uid=user0006, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+uid: user0006
+cn: csv0006
+sn: csv0006
+mail: user0006@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+userpassword: {MD5}THI6moKG9hsc0oLjYDSU3w==
+
+dn: uid=user0006, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+uid: user0006
+cn: csv0006
+sn: csv0006
+mail: user0006@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+userpassword: {MD5}THI6moKG9hsc0oLjYDSU3w==
+
+dn: uid=user0006, ou=tech, ou=it, ou=people, ou=slave, dc=lism, dc=com
+uid: user0006
+cn: csv0006
+sn: csv0006
+mail: user0006@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+userpassword: {MD5}THI6moKG9hsc0oLjYDSU3w==
+
+dn: uid=user0006, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+uid: user0006
+cn: csv0006
+sn: csv0006
+mail: user0006@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+userpassword: {MD5}THI6moKG9hsc0oLjYDSU3w==
+
+dn: uid=user0006, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}THI6moKG9hsc0oLjYDSU3w==
+uid: user0006
+mail: user0006@lism.com

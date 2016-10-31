@@ -1,0 +1,3 @@
+dn: uid=user0301, ou=Tech, ou=IT, ou=People, ou=CSV, dc=lism, dc=com
+userpassword: attrOnly
+cn: attrOnly

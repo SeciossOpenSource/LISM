@@ -1,0 +1,22 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrnode: SQL
+lismsyncerrmessage: ou=it,ou=roles,ou=sql,dc=lism,dc=com "The entry may be inv
+ alid in cluster"
+lismsyncerrmessage: ou=machine,ou=roles,ou=sql,dc=lism,dc=com "The entry may b
+ e invalid in cluster"
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com
+  "The value is inconsistent in cluster: attr='cn' expect='user0001' current='
+ csv0001', attr='sn' expect='user0001' current='csv0001'"
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com
+  "The value is inconsistent in master: attr='cn' expect='csv0001' current='us
+ er0001', attr='sn' expect='csv0001' current='user0001'"
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=sql,dc=lism,dc=com
+  "The value is inconsistent in master: attr='telephoneNumber' expect='01-2345
+ -6789;12-3456-7890' current=''"
+lismsyncerrmessage: uid=user0004,ou=tech,ou=machine,ou=people,ou=sql,dc=lism,d
+ c=com "The value is inconsistent in master: attr='telephoneNumber' expect='23
+ -4567-8901' current=''"

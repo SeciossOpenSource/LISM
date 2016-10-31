@@ -1,0 +1,9 @@
+dn: uid=wuser0001, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+businesscategory: Tech
+userpassword: {MD5}VyHZNziA5BbzBaE22ktz0Q==
+uid: wuser0001
+cn: wuser0001
+sn: wuser0001
+objectclass: inetOrgPerson
+objectclass: person
+mail: wuser0001@lism.org

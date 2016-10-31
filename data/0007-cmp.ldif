@@ -1,0 +1,128 @@
+dn: uid=user0001, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}gPaixIoYBwwvHwJVEjTiVgPSC/o=
+uid: user0001
+cn: user0001
+sn: user0001
+mail: user0001@lism.org
+
+dn: uid=user0004, ou=Tech, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=IT,ou=Department,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}UrgAAkjiYxdsZZkDkvZhxfQKN2g=
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+objectclass: inetOrgPerson
+objectclass: person
+mail: user0001@lism.org
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=ldap, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=ldap,dc=lism,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,ou=ldap,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+telephonenumber: 23-4567-8901
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+objectclass: inetOrgPerson
+objectclass: person
+mail: user0001@lism.org
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=master, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=master,dc=lism,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,ou=master,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+telephonenumber: 23-4567-8901
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=slave, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+objectclass: inetOrgPerson
+objectclass: person
+mail: user0001@lism.org
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=slave, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=slave,dc=lism,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,ou=slave,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+telephonenumber: 23-4567-8901
+
+dn: uid=user0001, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+cn: user0001
+sn: user0001
+objectclass: inetOrgPerson
+objectclass: person
+mail: user0001@lism.org
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=soap, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,dc=example,dc=com
+businesscategory: cn=IT,ou=Department,ou=Roles,dc=example,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+telephonenumber: 23-4567-8901
+
+dn: uid=user0001, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}VKKWM8gQVFKdwkt2BQCLJQ==
+uid: user0001
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+mail: user0001@lism.org
+
+dn: uid=user0004, ou=Tech, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+telephonenumber: 23-4567-8901
+mail: user0004@lism.com

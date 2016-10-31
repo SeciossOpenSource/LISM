@@ -1,0 +1,35 @@
+dn: o=company01.com,ou=LDAP2,dc=lism,dc=com
+objectClass: organization
+o: company01.com
+
+dn: ou=People,o=company01.com,ou=LDAP2,dc=lism,dc=com
+objectClass: organizationalUnit
+ou: People
+
+dn: uid=pauser0001,ou=People,o=company01.com,ou=LDAP2,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: pauser0001
+mail: pauser0001@lism.com
+userPassword: pauser0001
+cn: pauser0001
+sn: pauser0001
+
+dn: uid=pauser0002,ou=People,o=company01.com,ou=LDAP2,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: pauser0002
+mail: pauser0002@lism.com
+userPassword: pauser0002
+cn: pauser0002
+sn: pauser0002
+
+dn: uid=pauser0003,ou=People,o=company01.com,ou=LDAP2,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: pauser0003
+mail: pauser0003@lism.com
+userPassword: pauser0003
+cn: pauser0003
+sn: pauser0003
+authzFrom: uid=pauser0001,ou=People,o=company01.com,ou=LDAP2,dc=lism,dc=com

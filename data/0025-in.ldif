@@ -1,0 +1,9 @@
+dn: uid=user0001,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+changetype: modify
+replace: mail
+mail: sync-csv0001@lism.com
+
+dn: uid=user0004,ou=Tech,ou=Machine,ou=People,ou=SQL,dc=lism,dc=com
+changetype: modify
+replace: mail
+mail: sync-sql0004@lism.com

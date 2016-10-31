@@ -1,0 +1,1 @@
+uid=user1201,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com:user1201:"¥æ¡¼¥¶1201"::cfaf1401153d5a32473cefc4e8f457a8d88e4f8b:user1201@lism.com:01-2345-6789;12-3456-7890:cn=developer,ou=app,ou=roles,ou=csv,dc=lism,dc=com;cn=maintainer,ou=app,ou=roles,ou=csv,dc=lism,dc=com:ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com::uid=user1201:[0-9]{10}:

@@ -1,0 +1,51 @@
+dn: ou=soap, dc=lism, dc=com
+ou: soap
+objectclass: organizationalUnit
+
+dn: ou=People, ou=soap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: People
+
+dn: ou=Roles, ou=soap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Roles
+
+dn: ou=it, ou=people, ou=soap, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user0401, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,dc=example,dc=com
+uid: user0401
+userpassword: user0401
+cn:: 44Om44O844K2MDQwMQ==
+sn:: 44Om44O844K2MDQwMQ==
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+mail: user0401@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0402, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,dc=example,dc=com
+uid: user0402
+userpassword: user0402
+cn:: 44Om44O844K2MDQwMg==
+sn:: 44Om44O844K2MDQwMg==
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+mail: user0402@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: ou=app, ou=roles, ou=soap, dc=lism, dc=com
+ou: App
+objectclass: organizationalUnit
+
+dn: cn=guest, ou=app, ou=roles, ou=soap, dc=lism, dc=com
+cn: Guest
+objectclass: organizationalRole

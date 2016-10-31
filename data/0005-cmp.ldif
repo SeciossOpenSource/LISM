@@ -1,0 +1,8 @@
+dn: c=Japan, ou=Company, ou=CSV, dc=lism, dc=com
+c: Japan
+objectclass: country
+
+dn: o=LISM-System, c=Japan, ou=Company, ou=CSV, dc=lism, dc=com
+objectclass: organization
+l: Japan
+o: LISM-System

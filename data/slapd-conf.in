@@ -1,0 +1,23 @@
+#
+# master slapd config -- for testing
+#
+include $SCHEMA_DIR/core.schema
+include $SCHEMA_DIR/cosine.schema
+include $SCHEMA_DIR/nis.schema
+include $SCHEMA_DIR/inetorgperson.schema
+#schemacheck	off
+pidfile     $TESTLDAP/slapd.pid
+argsfile    $TESTLDAP/slapd.args
+
+#######################################################################
+# bdb database definitions
+#######################################################################
+
+database	bdb
+suffix		"dc=example,dc=com"
+directory	$TESTLDAP
+rootdn		"cn=Manager,dc=example,dc=com"
+rootpw		secret
+index		objectClass,uid,cn,sn	eq
+
+overlay		sssvlv

@@ -1,0 +1,10 @@
+dn: uid=user0301,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0301
+mail: user0301@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Test,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+userPassword: user0301
+cn: user0301

@@ -1,0 +1,11 @@
+dn: cn=cluster, dc=lism, dc=com
+objectclass: lismCluster
+lismclustermaster: SQL
+lismclusternode: CSV
+lismclusternode: LDAP
+lismclusternode: SQL
+lismclusternode: Slave
+lismclusternode: Slave2
+lismclusteractive: CSV#cluster,master
+lismclusteractive: SQL#cluster,master
+lismclusteractive: Slave#cluster

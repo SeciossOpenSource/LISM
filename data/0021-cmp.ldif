@@ -1,0 +1,27 @@
+dn: uid=admin, ou=people, ou=ldap, dc=lism, dc=com
+uid: admin
+cn: admin
+sn: admin
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=admin, ou=people, ou=master, dc=lism, dc=com
+uid: admin
+cn: admin
+sn: admin
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=admin, ou=people, ou=slave, dc=lism, dc=com
+uid: admin
+cn: admin
+sn: admin
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=admin, ou=people, ou=soap, dc=lism, dc=com
+uid: admin
+cn: admin
+sn: admin
+objectclass: inetOrgPerson
+objectclass: person

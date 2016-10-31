@@ -1,0 +1,8 @@
+dn: uid=user0301, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}5wCKpxl51R0si/pqRd6Je5W+fk8=
+uid: user0301
+cn:: 5pu05paw44Om44O844K2MDMwMQ==
+o: IT(ou=it,ou=people,ou=csv,dc=lism,dc=com)
+o: Machine(ou=machine,ou=people,ou=csv,dc=lism,dc=com)

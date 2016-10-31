@@ -1,0 +1,8 @@
+dn: uid=ruser0001, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}83fMZjb0A+Av0SWFjjx6rQ==
+uid: ruser0001
+cn: ruser0001
+sn: ruser0001
+objectclass: inetOrgPerson
+objectclass: person
+mail: ruser0001@lism.org

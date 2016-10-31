@@ -1,0 +1,39 @@
+dn: cn=LDAP-Server, ou=computers, ou=csv, dc=lism, dc=com
+objectclass: device
+l: Japan
+cn: LDAP-Server
+
+dn: cn=ldap-server, c=japan, ou=computers, ou=ldap, dc=lism, dc=com
+l: Japan
+cn: LDAP-Server
+objectclass: device
+
+dn: cn=ldap-server, c=usa, ou=computers, ou=ldap, dc=lism, dc=com
+l: USA
+cn: LDAP-Server
+objectclass: device
+
+dn: cn=ldap-server, c=japan, ou=computers, ou=master, dc=lism, dc=com
+l: Japan
+cn: LDAP-Server
+objectclass: device
+
+dn: cn=ldap-server, c=usa, ou=computers, ou=master, dc=lism, dc=com
+l: USA
+cn: LDAP-Server
+objectclass: device
+
+dn: cn=ldap-server, c=japan, ou=computers, ou=slave, dc=lism, dc=com
+l: Japan
+cn: LDAP-Server
+objectclass: device
+
+dn: cn=ldap-server, c=japan, ou=computers, ou=soap, dc=lism, dc=com
+l: Japan
+cn: LDAP-Server
+objectclass: device
+
+dn: cn=ldap-server, c=usa, ou=computers, ou=soap, dc=lism, dc=com
+l: USA
+cn: LDAP-Server
+objectclass: device

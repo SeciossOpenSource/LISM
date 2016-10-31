@@ -1,0 +1,53 @@
+dn: uid=user0011, ou=sales, ou=it, ou=people, ou=ldap2, dc=lism, dc=com
+userpassword: {MD5}ETjbLfX0OmcGLfkiLAX9aQ==
+uid: user0011
+cn: user0011
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+sn: user0011
+mail: user0011@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0011, ou=sales, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}ETjbLfX0OmcGLfkiLAX9aQ==
+uid: user0011
+cn: user0011
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+sn: user0011
+mail: user0011@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0011, ou=sales, ou=it, ou=people, ou=slave, dc=lism, dc=com
+userpassword: {MD5}ETjbLfX0OmcGLfkiLAX9aQ==
+uid: user0011
+cn: user0011
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+sn: user0011
+mail: user0011@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0011, ou=sales, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}ETjbLfX0OmcGLfkiLAX9aQ==
+uid: user0011
+cn: user0011
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+sn: user0011
+mail: user0011@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0011, ou=Sales, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}ETjbLfX0OmcGLfkiLAX9aQ==
+uid: user0011
+telephonenumber: 12-3456-7890
+telephonenumber: 23-4567-8901
+cn: user0011
+mail: user0011@lism.com

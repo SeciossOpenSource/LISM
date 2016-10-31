@@ -1,0 +1,8 @@
+dn: uid=user13, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}0Jl515Sm7mDYNviEc59xlg==
+uid: user13
+cn: user13
+sn: user13
+objectclass: inetOrgPerson
+objectclass: person
+mail: user13@lism.com

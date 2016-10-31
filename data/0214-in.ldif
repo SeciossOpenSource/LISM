@@ -1,0 +1,14 @@
+dn: ou=Consulting,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Consulting
+description: Consulting Department
+
+dn: uid=user0203,ou=Consulting,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+objectclass: Account
+uid: user0203
+mail: user0203@lism.com
+userPassword: user0203
+cn: ユーザ0203
+sn: ユーザ0203

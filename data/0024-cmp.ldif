@@ -1,0 +1,4 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: sync

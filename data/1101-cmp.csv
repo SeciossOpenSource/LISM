@@ -1,0 +1,1 @@
+rdn=user11,dn=uid=user11,ou=tech,ou=it,ou=people,ou=ldap,dc=lism,dc=com,objectClass=person+inetOrgPerson,uid=user11,mail=user11@lism.com,userpassword=user11,plainpassword=user11,cn=user11,sn=user11;

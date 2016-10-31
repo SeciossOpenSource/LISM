@@ -1,0 +1,138 @@
+dn: ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: ou=Department,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Department
+
+dn: cn=Admin,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: cn=IT,ou=Department,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: IT
+
+dn: cn=Sales,ou=Department,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Sales
+
+dn: ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Machine,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=Sales,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Tech,ou=Machine,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: ou=Sales,ou=Machine,ou=People,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Company,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Company
+
+dn: c=Japan,ou=Company,ou=Master,dc=lism,dc=com
+objectclass: country
+c: Japan
+
+dn: o=LISM-System,c=Japan,ou=Company,ou=Master,dc=lism,dc=com
+objectclass: organization
+o: LISM-System
+l: Japan
+
+dn: ou=Computers,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Computers
+
+dn: uid=user0001,ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0001
+mail: user0001@lism.com
+userPassword: user0001
+cn: user0001
+sn: user0001
+
+dn: uid=user0002,ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0002
+mail: user0002@lism.com
+userPassword: user0002
+cn: user0002
+sn: user0002
+
+dn: uid=user0003,ou=Sales,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0003
+mail: user0003@lism.com
+userPassword: user0003
+cn: user0003
+sn: user0003
+
+dn: uid=user0004,ou=Tech,ou=Machine,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0004
+mail: user0004@lism.com
+userPassword: user0004
+cn: user0004
+sn: user0004
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+businessCategory: cn=IT,ou=Department,ou=Roles,ou=Master,dc=lism,dc=com
+
+dn: uid=user0005,ou=Tech,ou=Machine,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0005
+mail: user0005@lism.com
+cn: user0005
+sn: user0005
+
+dn: uid=user0001,ou=Tech,ou=IT,ou=People,ou=SQL,dc=lism,dc=com
+changetype: modify
+replace: telephoneNumber
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+
+dn: uid=user0001,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+changetype: modify
+replace: cn
+cn: csv0001
+-
+replace: sn
+sn: csv0001
+
+dn: uid=user0004,ou=Tech,ou=Machine,ou=People,ou=SQL,dc=lism,dc=com
+changetype: modify
+add: telephoneNumber
+telephoneNumber: 23-4567-8901
+
+dn: uid=user(),ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user()
+mail: user()@lism.com
+userPassword: user()
+cn: user()
+sn: user()

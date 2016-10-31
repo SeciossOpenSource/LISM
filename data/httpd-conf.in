@@ -1,0 +1,264 @@
+# WARNING: this file is generated, do not edit
+# 01: /usr/lib/perl5/vendor_perl/5.8.5/i386-linux-thread-multi/Apache/TestConfig.pm:875
+# 02: /usr/lib/perl5/vendor_perl/5.8.5/i386-linux-thread-multi/Apache/TestConfig.pm:893
+# 03: /usr/lib/perl5/vendor_perl/5.8.5/i386-linux-thread-multi/Apache/TestConfig.pm:1465
+# 04: /usr/lib/perl5/vendor_perl/5.8.5/i386-linux-thread-multi/Apache/TestRun.pm:499
+# 05: /usr/lib/perl5/vendor_perl/5.8.5/i386-linux-thread-multi/Apache/TestRun.pm:714
+# 06: /usr/lib/perl5/vendor_perl/5.8.5/i386-linux-thread-multi/Apache/TestRun.pm:714
+# 07: /home/kaoru/devel/IT/t/TEST:7
+
+<IfModule !mod_auth_digest.c>
+    LoadModule auth_digest_module "/etc/httpd/modules/mod_auth_digest.so"
+</IfModule>
+
+<IfModule !mod_ldap.c>
+    LoadModule ldap_module "/etc/httpd/modules/mod_ldap.so"
+</IfModule>
+
+<IfModule !mod_include.c>
+    LoadModule include_module "/etc/httpd/modules/mod_include.so"
+</IfModule>
+
+<IfModule !mod_log_config.c>
+    LoadModule log_config_module "/etc/httpd/modules/mod_log_config.so"
+</IfModule>
+
+<IfModule !mod_env.c>
+    LoadModule env_module "/etc/httpd/modules/mod_env.so"
+</IfModule>
+
+<IfModule !mod_mime_magic.c>
+    LoadModule mime_magic_module "/etc/httpd/modules/mod_mime_magic.so"
+</IfModule>
+
+<IfModule !mod_cern_meta.c>
+    LoadModule cern_meta_module "/etc/httpd/modules/mod_cern_meta.so"
+</IfModule>
+
+<IfModule !mod_expires.c>
+    LoadModule expires_module "/etc/httpd/modules/mod_expires.so"
+</IfModule>
+
+<IfModule !mod_deflate.c>
+    LoadModule deflate_module "/etc/httpd/modules/mod_deflate.so"
+</IfModule>
+
+<IfModule !mod_headers.c>
+    LoadModule headers_module "/etc/httpd/modules/mod_headers.so"
+</IfModule>
+
+<IfModule !mod_usertrack.c>
+    LoadModule usertrack_module "/etc/httpd/modules/mod_usertrack.so"
+</IfModule>
+
+<IfModule !mod_setenvif.c>
+    LoadModule setenvif_module "/etc/httpd/modules/mod_setenvif.so"
+</IfModule>
+
+<IfModule !mod_mime.c>
+    LoadModule mime_module "/etc/httpd/modules/mod_mime.so"
+</IfModule>
+
+<IfModule !mod_dav.c>
+    LoadModule dav_module "/etc/httpd/modules/mod_dav.so"
+</IfModule>
+
+<IfModule !mod_status.c>
+    LoadModule status_module "/etc/httpd/modules/mod_status.so"
+</IfModule>
+
+<IfModule !mod_autoindex.c>
+    LoadModule autoindex_module "/etc/httpd/modules/mod_autoindex.so"
+</IfModule>
+
+<IfModule !mod_asis.c>
+    LoadModule asis_module "/etc/httpd/modules/mod_asis.so"
+</IfModule>
+
+<IfModule !mod_info.c>
+    LoadModule info_module "/etc/httpd/modules/mod_info.so"
+</IfModule>
+
+<IfModule !mod_dav_fs.c>
+    LoadModule dav_fs_module "/etc/httpd/modules/mod_dav_fs.so"
+</IfModule>
+
+<IfModule !mod_vhost_alias.c>
+    LoadModule vhost_alias_module "/etc/httpd/modules/mod_vhost_alias.so"
+</IfModule>
+
+<IfModule !mod_negotiation.c>
+    LoadModule negotiation_module "/etc/httpd/modules/mod_negotiation.so"
+</IfModule>
+
+<IfModule !mod_dir.c>
+    LoadModule dir_module "/etc/httpd/modules/mod_dir.so"
+</IfModule>
+
+<IfModule !mod_actions.c>
+    LoadModule actions_module "/etc/httpd/modules/mod_actions.so"
+</IfModule>
+
+<IfModule !mod_speling.c>
+    LoadModule speling_module "/etc/httpd/modules/mod_speling.so"
+</IfModule>
+
+<IfModule !mod_userdir.c>
+    LoadModule userdir_module "/etc/httpd/modules/mod_userdir.so"
+</IfModule>
+
+<IfModule !mod_alias.c>
+    LoadModule alias_module "/etc/httpd/modules/mod_alias.so"
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    LoadModule rewrite_module "/etc/httpd/modules/mod_rewrite.so"
+</IfModule>
+
+<IfModule !mod_proxy.c>
+    LoadModule proxy_module "/etc/httpd/modules/mod_proxy.so"
+</IfModule>
+
+<IfModule !proxy_ftp.c>
+    LoadModule proxy_ftp_module "/etc/httpd/modules/mod_proxy_ftp.so"
+</IfModule>
+
+<IfModule !proxy_http.c>
+    LoadModule proxy_http_module "/etc/httpd/modules/mod_proxy_http.so"
+</IfModule>
+
+<IfModule !proxy_connect.c>
+    LoadModule proxy_connect_module "/etc/httpd/modules/mod_proxy_connect.so"
+</IfModule>
+
+<IfModule !mod_cache.c>
+    LoadModule cache_module "/etc/httpd/modules/mod_cache.so"
+</IfModule>
+
+<IfModule !mod_suexec.c>
+    LoadModule suexec_module "/etc/httpd/modules/mod_suexec.so"
+</IfModule>
+
+<IfModule !mod_disk_cache.c>
+    LoadModule disk_cache_module "/etc/httpd/modules/mod_disk_cache.so"
+</IfModule>
+
+<IfModule !mod_file_cache.c>
+    LoadModule file_cache_module "/etc/httpd/modules/mod_file_cache.so"
+</IfModule>
+
+<IfModule !mod_mem_cache.c>
+    LoadModule mem_cache_module "/etc/httpd/modules/mod_mem_cache.so"
+</IfModule>
+
+<IfModule !mod_cgi.c>
+    LoadModule cgi_module "/etc/httpd/modules/mod_cgi.so"
+</IfModule>
+
+<IfModule !mod_ssl.c>
+    LoadModule ssl_module "/etc/httpd/modules/mod_ssl.so"
+</IfModule>
+
+<IfModule !mod_mime.c>
+    LoadModule mime_module "/usr/lib/httpd/modules/mod_mime.so"
+</IfModule>
+
+LoadModule perl_module "/usr/lib/httpd/modules/mod_perl.so"
+
+#User    UNAME
+#Group    GNAME
+ServerName localhost.localdomain:8888
+Listen     0.0.0.0:8888
+
+ServerRoot   "$WD"
+DocumentRoot "$WD/cgi"
+
+PidFile     $TEMPDIR/httpd.pid
+ErrorLog    $TEMPDIR/error_log
+LogLevel    debug
+
+<IfModule mod_log_config.c>
+    TransferLog $TEMPDIR/access_log
+</IfModule>
+
+ServerAdmin root@localhost
+
+#needed for http/1.1 testing
+KeepAlive       On
+
+HostnameLookups Off
+
+<Directory />
+    Options FollowSymLinks
+    AllowOverride None
+</Directory>
+
+<Directory "$WD/cgi">
+    Options Indexes FollowSymLinks ExecCGI
+    SetHandler perl-script
+    PerlResponseHandler ModPerl::RegistryPrefork
+    Setenv PERL5LIB $WD/cgi
+</Directory>
+
+<IfModule worker.c>
+    StartServers         1
+    MinSpareThreads      1
+    MaxSpareThreads      1
+    ThreadsPerChild      1
+    MaxClients           5
+    MaxRequestsPerChild  0
+</IfModule>
+
+<IfModule perchild.c>
+    NumServers           1
+    StartThreads         1
+    MinSpareThreads      1
+    MaxSpareThreads      1
+    MaxThreadsPerChild   2
+    MaxRequestsPerChild  0
+</IfModule>
+
+<IfModule prefork.c>
+    StartServers         1
+    MinSpareServers      1
+    MaxSpareServers      1
+    MaxClients           2
+    MaxRequestsPerChild  0
+</IfModule>
+
+<IfDefine APACHE1>
+    StartServers         1
+    MinSpareServers      1
+    MaxSpareServers      1
+    MaxClients           2
+    MaxRequestsPerChild  0
+</IfDefine>
+
+<IfModule mpm_winnt.c>
+    ThreadsPerChild      50
+    MaxRequestsPerChild  0
+</IfModule>
+
+<Location /server-info>
+    SetHandler server-info
+</Location>
+
+<Location /server-status>
+    SetHandler server-status
+</Location>
+
+<IfModule !mod_alias.c>
+    LoadModule alias_module "/usr/lib/httpd/modules/mod_alias.so"
+</IfModule>
+<IfModule mod_alias.c>
+    Alias /getfiles-binary-perl /usr/bin/perl
+    Alias /getfiles-perl-pod /usr/lib/perl5/5.8.8/pod
+    Alias /getfiles-binary-httpd /usr/sbin/httpd
+</IfModule>
+
+TypesConfig "/etc/mime.types"
+
+LoadModule php5_module /usr/lib/httpd/modules/libphp5.so
+
+AddType application/x-httpd-php .php .phtml .php3
+AddType application/x-httpd-php-source .phps

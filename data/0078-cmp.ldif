@@ -1,0 +1,7 @@
+dn: uid=user0020, ou=People, ou=Tech, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}9r4WwVp5H4f4Vc4uFPcsQw==
+uid: user0020
+cn: user0020
+mail: user0020@lism.org

@@ -1,0 +1,9 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrmessage: uid=user0002,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com
+  "The entry doesn't exist in cluster"
+lismsyncerrmessage: uid=user0002,ou=tech,ou=it,ou=people,ou=master,dc=lism,dc=
+ com "The entry may be invalid in master"

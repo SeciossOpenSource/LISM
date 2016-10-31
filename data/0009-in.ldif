@@ -1,0 +1,20 @@
+dn: uid=user0006,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0006
+mail: user0006@lism.com
+userPassword: user0006
+cn: csv0006
+sn: csv0006
+
+dn: uid=user0007,ou=Sales,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0007
+cn: csv0007
+sn: csv0007
+
+dn: uid=user0004,ou=Tech,ou=Machine,ou=People,ou=CSV,dc=lism,dc=com
+changetype: modify
+add: businessCategory
+businessCategory: cn=Sales,ou=Department,ou=Roles,ou=CSV,dc=lism,dc=com

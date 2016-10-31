@@ -1,0 +1,26 @@
+dn: mail=user1304@lism.com, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=co
+ m
+uid: user1304
+cn: user1304
+sn: user1304
+mail: user1304@lism.com
+objectclass: Account
+objectclass: inetOrgPerson
+
+dn: mail=user1304@lism.com, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=
+ com
+uid: user1304
+cn: user1304
+sn: user1304
+mail: user1304@lism.com
+objectclass: Account
+objectclass: inetOrgPerson
+
+dn: mail=user1304@lism.com, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=co
+ m
+uid: user1304
+cn: user1304
+sn: user1304
+mail: user1304@lism.com
+objectclass: inetOrgPerson
+objectclass: organizationalPerson

@@ -1,0 +1,5 @@
+dn: ou=People, ou=ldap, dc=lism, dc=com
+ou: People
+
+dn: ou=Roles, ou=ldap, dc=lism, dc=com
+ou: Roles

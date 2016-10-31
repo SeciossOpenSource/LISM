@@ -1,0 +1,117 @@
+dn: ou=sql, dc=lism, dc=com
+ou: sql
+objectclass: organizationalUnit
+description: SQL Server
+
+dn: ou=Groups, ou=sql, dc=lism, dc=com
+ou: Groups
+objectclass: organizationalUnit
+
+dn: ou=People, ou=sql, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: ou=Roles, ou=sql, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Sales, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: uid=user0103, ou=Sales, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+userpassword: {MD5}U2wyGChTxJhWatQfU7IRvQ==
+uid: user0103
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDEwMw==
+mail: user0103@lism.com
+
+dn: ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user(), ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+userpassword: {MD5}1nHnhp4o0zOnJPee4v4mrw==
+uid: user()
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2KCk=
+mail: user()@lism.com
+
+dn: uid=user0101, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+facsimiletelephonenumber: 01-2345-6789
+facsimiletelephonenumber: 12-3456-7890
+userpassword: {MD5}ZnlrYFJ9AWVDDLVRuMvxRA==
+uid: user0101
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDEwMQ==
+mail: user0101@lism.com
+
+dn: uid=user0102, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+userpassword: {MD5}kTe6wer+RY41PjN+fVl6RA==
+uid: user0102
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDEwMg==
+mail: user0102@lism.com
+
+dn: ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Sales, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Tech, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user0104, ou=Tech, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+userpassword: {MD5}xE2fPRD/NFC9u+1e0ThFsw==
+uid: user0104
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 5pS56KGMCuODpuODvOOCtjAxMDQ=
+mail: user0104@lism.com
+
+dn: ou=App, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: cn=Admin, ou=App, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest, ou=App, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: ou=it, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: it
+
+dn: ou=machine, ou=roles, ou=sql, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: machine

@@ -1,0 +1,28 @@
+dn: ou=services, ou=slave, dc=lism, dc=com
+ou: Services
+objectclass: organizationalUnit
+
+dn: ou=it, ou=services, ou=slave, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=it, ou=services, ou=slave, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=tech, ou=it, ou=services, ou=slave, dc=lism, dc=com
+cn: admin
+objectclass: organizationalRole
+ou: nosync
+
+dn: ou=machine, ou=services, ou=slave, dc=lism, dc=com
+ou: Machine
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=machine, ou=services, ou=slave, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=tech, ou=machine, ou=services, ou=slave, dc=lism, dc=com
+cn: admin
+objectclass: organizationalRole

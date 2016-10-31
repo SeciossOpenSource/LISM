@@ -1,0 +1,28 @@
+dn: uid=user0009,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0009
+mail: user0009@lism.com
+userPassword: user0009
+cn: user0009
+sn: user0009
+
+dn: uid=ruser0001,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: ruser0001
+mail: ruser0001@lism.com
+userPassword: ruser0001
+cn: ruser0001
+sn: ruser0001
+
+dn: uid=wuser0001,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: wuser0001
+mail: wuser0001@lism.com
+userPassword: wuser0001
+cn: wuser0001
+sn: wuser0001
+businessCategory: Tech
+

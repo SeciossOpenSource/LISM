@@ -1,0 +1,8 @@
+dn: uid=user0009, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}TgHptgzYDhZSRupYq0SJiA==
+uid: user0009
+cn: user0009
+sn: user0009
+objectclass: inetOrgPerson
+objectclass: person
+mail: user0009@lism.org

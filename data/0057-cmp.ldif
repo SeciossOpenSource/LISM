@@ -1,0 +1,13 @@
+dn: cn=master-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: master-sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrmessage: cn=db-server,ou=computers,ou=csv,dc=lism,dc=com "The value
+  is inconsistent in master: attr='ou' expect='Tech' current=''"
+lismsyncerrmessage: uid=ruser0001,ou=tech,ou=it,ou=people,ou=master,dc=lism,dc
+ =com "The entry may be invalid in master"
+lismsyncerrmessage: uid=user0009,ou=tech,ou=it,ou=people,ou=master,dc=lism,dc=
+ com "The entry may be invalid in master"
+lismsyncerrmessage: uid=wuser0001,ou=tech,ou=it,ou=people,ou=master,dc=lism,dc
+ =com "The entry may be invalid in master"

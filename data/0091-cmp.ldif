@@ -1,0 +1,8 @@
+dn: cn=master-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: master-sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrmessage: uid=user0010,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com
+  "The entry should move from "uid=user0010,ou=sales,ou=it,ou=people,ou=master
+ ,dc=lism,dc=com" in master"

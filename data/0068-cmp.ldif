@@ -1,0 +1,10 @@
+dn: uid=user0021, ou=People, ou=Sales, ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Admin,ou=Roles,ou=IT,ou=cmplxdb,dc=lism,dc=com
+businesscategory: cn=Manager,cn=Group1,cn=Unit1,cn=Tech,ou=Roles,ou=Machine,ou
+ =cmplxdb,dc=lism,dc=com
+userpassword: {MD5}YFcRt5HvvEkuCz3FhCS0gw==
+uid: user0021
+cn: user0021
+mail: user0021@lism.com

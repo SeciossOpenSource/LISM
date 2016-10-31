@@ -1,0 +1,9 @@
+dn: cn=group04, ou=groups, ou=ldap, dc=lism, dc=com
+cn: group04
+objectclass: posixGroup
+gidnumber: 8004
+
+dn: cn=group05, ou=groups, ou=ldap, dc=lism, dc=com
+cn: group05
+objectclass: posixGroup
+gidnumber: 6005

@@ -1,0 +1,10 @@
+dn: uid=user0103, ou=Tech, ou=Machine, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=sql,dc=lism,dc=com
+userpassword: {MD5}U2wyGChTxJhWatQfU7IRvQ==
+uid: user0103
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDEwMw==
+mail: user0103@lism.com

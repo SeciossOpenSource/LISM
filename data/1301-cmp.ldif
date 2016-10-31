@@ -1,0 +1,44 @@
+dn: uid=user1301, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user1301
+cn: user1301
+sn: default
+mail: user1301@lism.com
+
+dn: uid=user1301, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}zieWyhJ3oKbTwFbZ4R9t0g==
+uid: user1301
+cn: user1301
+sn: default
+mail: user1301@lism.com
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user1301, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}zieWyhJ3oKbTwFbZ4R9t0g==
+uid: user1301
+cn: user1301
+sn: default
+mail: user1301@lism.com
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user1301, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}zieWyhJ3oKbTwFbZ4R9t0g==
+uid: user1301
+cn: user1301
+sn: default
+mail: user1301@lism.com
+objectclass: inetOrgPerson
+objectclass: organizationalPerson
+objectclass: person
+
+dn: uid=user1301, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}zieWyhJ3oKbTwFbZ4R9t0g==
+uid: user1301
+mail: user1301@lism.com

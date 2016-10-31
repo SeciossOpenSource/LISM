@@ -1,0 +1,12 @@
+dn: uid=user0306, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}wxvyIsOO20nFMTD3od9LUf/tKVs=
+uid: user0306
+cn: user0306
+sn: user0306
+mail: user0306@lism.com
+seealso: cn=Group111, cn=Unit11, cn=Department1, ou=Groups, ou=csv, dc=lism, d
+ c=com
+seealso: cn=Group221, cn=Unit22, cn=Department2, ou=Groups, ou=csv, dc=lism, d
+ c=com

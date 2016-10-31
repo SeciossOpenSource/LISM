@@ -1,0 +1,8 @@
+dn: uid=user13,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user13
+mail: user13@lism.com
+userPassword: user13
+cn: user13
+sn: user13

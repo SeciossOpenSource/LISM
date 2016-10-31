@@ -1,0 +1,8 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: SQL
+lismsyncerrmessage: uid=user0004,ou=tech,ou=machine,ou=people,ou=sql,dc=lism,d
+ c=com "The value is inconsistent in cluster: attr='mail' expect='user0004@lis
+ m.com' current='sync-sql0004@lism.com'"

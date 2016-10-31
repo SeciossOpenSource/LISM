@@ -1,0 +1,7 @@
+dn: ou=People, ou=soap, dc=lism, dc=com
+objectclass: attrOnly
+ou: attrOnly
+
+dn: ou=Roles, ou=soap, dc=lism, dc=com
+objectclass: attrOnly
+ou: attrOnly

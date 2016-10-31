@@ -1,0 +1,4 @@
+dn: ou=sql, dc=lism, dc=com
+ou: sql
+objectclass: organizationalUnit
+description: SQL Server

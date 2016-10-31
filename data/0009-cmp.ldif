@@ -1,0 +1,12 @@
+dn: cn=master-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: master-sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrmessage: uid=user0004,ou=tech,ou=machine,ou=people,ou=csv,dc=lism,d
+ c=com "The value is inconsistent in master: attr='businessCategory' expect='c
+ n=IT,ou=Department,ou=roles,ou=master,dc=lism,dc=com;cn=Sales,ou=Department,o
+ u=roles,ou=master,dc=lism,dc=com' current='cn=IT,ou=Department,ou=Roles,ou=ma
+ ster,dc=lism,dc=com'"
+lismsyncerrmessage: uid=user0006,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com
+  "The entry doesn't exist in master"

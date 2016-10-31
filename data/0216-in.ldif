@@ -1,0 +1,28 @@
+dn: ou=Groups,ou=LDAP,dc=lism,dc=com
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=group01,ou=Groups,ou=LDAP,dc=lism,dc=com
+objectclass: posixGroup
+cn: group01
+gidNumber: 5001
+
+dn: cn=group02,ou=Groups,ou=LDAP,dc=lism,dc=com
+objectclass: posixGroup
+cn: group02
+gidNumber: 2002
+
+dn: cn=group03,ou=Groups,ou=LDAP,dc=lism,dc=com
+objectclass: posixGroup
+cn: group03
+gidNumber: 4003
+
+dn: cn=group04,ou=Groups,ou=LDAP,dc=lism,dc=com
+objectclass: posixGroup
+cn: group04
+gidNumber: 8004
+
+dn: cn=group05,ou=Groups,ou=LDAP,dc=lism,dc=com
+objectclass: posixGroup
+cn: group05
+gidNumber: 6005

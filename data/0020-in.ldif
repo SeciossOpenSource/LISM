@@ -1,0 +1,6 @@
+dn: uid=admin,ou=People,ou=LDAP,dc=lism,dc=com
+objectClass: Person
+objectClass: inetOrgPerson
+uid: admin
+cn: admin
+sn: admin

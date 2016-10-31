@@ -1,0 +1,859 @@
+<config>
+  <sync>
+    <transaction>$TRANSACTION</transaction>
+    <data name="CSV">
+      <masterop>add</masterop>
+      <masterop>delete</masterop>
+      <masterop>modify</masterop>
+      <object name="User">
+        <syncdn>ou=People</syncdn>
+        <syncfilter>(|(objectClass=organizationalUnit)(mail=*@lism.*))</syncfilter>
+        <unique base="ou=[^,]+"/>
+        <syncattr>
+          <name>cn</name>
+        </syncattr>
+        <syncattr>
+          <name>sn</name>
+        </syncattr>
+        <syncattr>
+          <name>userPassword</name>
+          <filter>(uid=user0*)</filter>
+        </syncattr>
+        <syncattr>
+          <name>mail</name>
+        </syncattr>
+        <syncattr>
+          <name>businessCategory</name>
+          <rule>ou=Department,ou=Roles,ou=Master,dc=lism,dc=com$</rule>
+        </syncattr>
+        <masterdn>ou=People</masterdn>
+        <masterfilter>(|(objectClass=organizationalUnit)(mail=*))</masterfilter>
+        <masterattr>
+          <name>objectClass</name>
+        </masterattr>
+        <masterattr>
+          <name>cn</name>
+        </masterattr>
+        <masterattr>
+          <name>sn</name>
+        </masterattr>
+        <masterattr>
+          <name>userPassword</name>
+        </masterattr>
+        <masterattr>
+          <name>mail</name>
+        </masterattr>
+        <masterattr>
+          <name>businessCategory</name>
+          <rule>ou=Department,ou=Roles,ou=CSV,dc=lism,dc=com</rule>
+        </masterattr>
+      </object>
+      <object name="Role">
+        <syncdn>ou=Roles</syncdn>
+        <syncattr>
+          <name>cn</name>
+        </syncattr>
+      </object>
+      <object name="Company">
+        <syncdn>c=Japan,ou=Company</syncdn>
+      </object>
+      <object name="Computer">
+        <dnignore>on</dnignore>
+        <syncfilter>(objectClass=device)</syncfilter>
+        <syncdn>ou=Computers</syncdn>
+        <syncattr>
+          <name>l</name>
+        </syncattr>
+        <masterfilter>(objectClass=device)</masterfilter>
+        <masterdn>ou=Computers</masterdn>
+        <masterattr>
+          <name>objectClass</name>
+        </masterattr>
+        <masterattr>
+          <name>ou</name>
+        </masterattr>
+      </object>
+    </data>
+    <data name="SQL">
+      <syncop>add</syncop>
+      <syncop>delete</syncop>
+      <syncop>modify</syncop>
+      <masterop>modify</masterop>
+      <object name="User">
+        <syncdn>ou=People</syncdn>
+        <syncfilter>(|(objectClass=organizationalUnit)(userPassword=*))</syncfilter>
+        <unique base="ou=[^,]+"/>
+        <syncattr>
+          <name>userPassword</name>
+        </syncattr>
+        <syncattr>
+          <name>mail</name>
+        </syncattr>
+        <syncattr>
+          <name>businessCategory</name>
+          <rule>ou=App,ou=Roles,ou=Master,dc=lism,dc=com</rule>
+        </syncattr>
+        <syncattr>
+          <name>lismParentDN</name>
+        </syncattr>
+        <masterdn>ou=People</masterdn>
+        <masterattr>
+          <name>objectClass</name>
+        </masterattr>
+        <masterattr>
+          <name>userPassword</name>
+        </masterattr>
+        <masterattr>
+          <name>telephoneNumber</name>
+        </masterattr>
+      </object>
+      <object name="Role">
+        <syncdn>ou=Roles</syncdn>
+        <syncattr>
+          <name>cn</name>
+        </syncattr>
+      </object>
+    </data>
+    <data name="Slave">
+      <object name="Entry">
+        <syncdn>*</syncdn>
+        <syncflag match="uid=[^,]+,([^,]+),([^,]+),ou=Services" dn="cn=admin,%1,%2,ou=Services,ou=Master,dc=lism,dc=com" filter="(ou=sync)"/>
+      </object>
+    </data>
+    <data name="Slave2">
+      <object name="Entry">
+        <syncdn>*</syncdn>
+      </object>
+    </data>
+    <master>
+      <containerdn>ou=Master</containerdn>
+      <data>LDAP</data>
+      <backup>SQL</backup>
+    </master>
+  </sync>
+  <data name="CSV">
+    <handler name="Rewrite">
+      <libload>$WD/lib/LISM/Utils/lism_util.pl</libload>
+      <rewritemap name="date2time" type="function"/>
+      <rewritemap name="time2date" type="function"/>
+      <rewritemap name="idmap" type="ldap" attrs="ldap://localhost:9011/ou=Roles,dc=example,dc=com?description???binddn=cn=Manager%2cdc=example%2cdc=com,bindpw=secret"/>
+      <rewritemap name="ridmap" type="ldap" attrs="ldap://localhost:9011/ou=Roles,dc=example,dc=com?cn???binddn=cn=Manager%2cdc=example%2cdc=com,bindpw=secret"/>
+      <rewritemap name="rolemap" type="ldap" attrs="ldap://localhost:9011/ou=Department,ou=Roles,dc=example,dc=com?seeAlso???binddn=cn=Manager%2cdc=example%2cdc=com,bindpw=secret"/>
+      <rewritemap name="rrolemap" type="ldap" attrs="ldap://localhost:9011/ou=Department,ou=Roles,dc=example,dc=com?cn???binddn=cn=Manager%2cdc=example%2cdc=com,bindpw=secret"/>
+      <rewritemap name="getou" type="regexp" attrs="uid=[^,]*,ou=([^,]*),"/>
+      <rewrite context="request" match="Adm[^,)]*" substitution="Manager"/>
+      <rewrite context="request" match="Guest" substitution="Anonymous"/>
+      <rewrite context="request" match="cn(=|: )(User)" substitution="cn%1%{idmap(cn=%2)}"/>
+      <rewrite context="request" match="title: ([^,]*),ou=Department,.*" substitution="businessCategory: %{rolemap(%1)}"/>
+      <rewrite context="request" match="roleOccupant: .*" substitution=""/>
+      <rewrite context="addRequest" match="(mail: orguser[^@]*).*" substitution="%1@%{getou('%0')}.lism.com"/>
+      <rewrite context="searchResult" match="Man[^,]*" substitution="Admin"/>
+      <rewrite context="searchResult" match="Anonymous" substitution="Guest"/>
+      <rewrite context="searchResult" match="cn(=|: )(Employee)" substitution="cn%1%{ridmap(description=%2)}"/>
+      <rewrite context="searchResult" match="businessCategory: ([^,]*),([^,]*),(.*)" substitution="title: cn=%{rrolemap(seeAlso=%1,%2,%3)},ou=Department,%3"/>
+      <rewrite context="request" match="modifytimestamp: *([0-9]*Z)$" substitution="modifytimestamp: %{date2time('%1')}"/>
+      <rewrite context="searchResult" match="modifytimestamp: *([0-9]*)$" substitution="modifytimestamp: %{time2date('%1')}"/>
+      <rewrite context="searchResult" match="(uid: orguser.*)" substitution="%1\nou: %{getou(%0)}"/>
+    </handler>
+    <container>
+      <rdn>ou=CSV</rdn>
+      <oc>organizationalUnit</oc>
+      <attr name="description">CSV File</attr>
+    </container>
+    <storage name="CSV" hash="SHA:hex">
+      <delim>:</delim>
+      <mbcode>euc-jp</mbcode>
+      <object name="User">
+        <file>$TEMPDIR/test-csv/user.csv</file>
+        <container>
+          <oname>Department</oname>
+          <idcolumn>8</idcolumn>
+        </container>
+        <id>
+          <column>0</column>
+        </id>
+        <oc>Person</oc>
+        <oc>inetOrgPerson</oc>
+        <rdn>uid</rdn>
+        <attr name="uid">
+          <column>1</column>
+        </attr>
+        <attr name="cn">
+          <column>2</column>
+        </attr>
+        <attr name="sn">
+          <column>3</column>
+        </attr>
+        <attr name="userpassword">
+          <column>4</column>
+        </attr>
+        <attr name="mail">
+          <column>5</column>
+        </attr>
+        <attr name="telephonenumber">
+          <column>6</column>
+        </attr>
+        <attr name="businesscategory">
+          <oname>Role</oname>
+          <idcolumn>7</idcolumn>
+        </attr>
+        <attr name="o">
+          <idcolumn>9</idcolumn>
+          <file>$TEMPDIR/test-csv/division.csv</file>
+          <id>
+            <column>0</column>
+          </id>
+          <value>%1(%0)</value>
+        </attr>
+        <attr name="modifytimestamp">
+          <column>11</column>
+        </attr>
+        <attr name="seealso">
+          <oname>Group</oname>
+          <idcolumn>12</idcolumn>
+        </attr>
+        <strginfo>
+          <value type="function">$dn</value>
+          <column>0</column>
+        </strginfo>
+        <strginfo>
+          <value type="function">($dn =~ /^([^,]+),/)[0]</value>
+          <column>10</column>
+        </strginfo>
+      </object>
+      <object name="Division">
+        <file>$TEMPDIR/test-csv/division.csv</file>
+        <container>
+          <rdn>ou=People</rdn>
+          <oc>organizationalUnit</oc>
+        </container>
+        <id>
+          <column>0</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>1</column>
+        </attr>
+        <strginfo>
+          <value type="function">$dn</value>
+          <column>0</column>
+        </strginfo>
+      </object>
+      <object name="Department">
+        <file>$TEMPDIR/test-csv/department.csv</file>
+        <container>
+          <oname>Division</oname>
+          <idcolumn>1</idcolumn>
+        </container>
+        <id>
+          <column>0</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>2</column>
+        </attr>
+        <strginfo>
+          <value type="function">$dn</value>
+          <column>0</column>
+        </strginfo>
+        <strginfo>
+          <value type="constant">enable</value>
+          <column>3</column>
+        </strginfo>
+        <strginfo>
+          <value type="function">($dn =~ /^([^,]+),/)[0]</value>
+          <column>4</column>
+        </strginfo>
+      </object>
+      <object name="Role">
+        <file>$TEMPDIR/test-csv/group.csv</file>
+        <container>
+          <oname>Category</oname>
+          <idcolumn>2</idcolumn>
+        </container>
+        <id>
+          <column>0</column>
+        </id>
+        <oc>organizationalRole</oc>
+        <rdn>cn</rdn>
+        <attr name="cn">
+          <column>1</column>
+        </attr>
+        <attr name="roleoccupant">
+          <column>4</column>
+        </attr>
+        <strginfo>
+          <value type="function">$dn</value>
+          <column>0</column>
+        </strginfo>
+        <strginfo>
+          <value type="function">($dn =~ /^([^,]+),/)[0]</value>
+          <column>3</column>
+        </strginfo>
+      </object>
+      <object name="Category">
+        <file>$TEMPDIR/test-csv/category.csv</file>
+        <container>
+          <rdn>ou=Roles</rdn>
+          <oc>organizationalUnit</oc>
+        </container>
+        <id>
+          <column>0</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>1</column>
+        </attr>
+        <strginfo>
+          <value type="function">$dn</value>
+          <column>0</column>
+        </strginfo>
+      </object>
+      <object name="Company">
+        <container>
+          <rdn>ou=Company</rdn>
+          <oc>organizationalUnit</oc>
+        </container>
+        <subcontainer>
+          <rdn>c=Japan</rdn>
+          <oc>country</oc>
+        </subcontainer>
+        <file>$TEMPDIR/test-csv/company.csv</file>
+        <id>
+          <column>0</column>
+        </id>
+        <rdn>o</rdn>
+        <oc>organization</oc>
+        <attr name="o">
+          <column>0</column>
+        </attr>
+        <attr name="l">
+          <column>1</column>
+        </attr>
+      </object>
+      <object name="Computer">
+        <container>
+          <rdn>ou=Computers</rdn>
+          <oc>organizationalUnit</oc>
+        </container>
+        <file>$TEMPDIR/test-csv/computer.csv</file>
+        <id>
+          <column>0</column>
+        </id>
+        <rdn>cn</rdn>
+        <oc>device</oc>
+        <attr name="cn">
+          <column>0</column>
+        </attr>
+        <attr name="l">
+          <column>1</column>
+        </attr>
+        <attr name="ou">
+          <column>2</column>
+        </attr>
+      </object>
+      <object name="Group">
+        <file>$TEMPDIR/test-csv/rcsv_group.csv</file>
+        <container>
+          <oname>Group</oname>
+          <idcolumn>2</idcolumn>
+        </container>
+        <subcontainer>
+          <rdn>ou=Groups</rdn>
+          <oc>organizationalUnit</oc>
+        </subcontainer>
+        <id>
+          <column>0</column>
+        </id>
+        <oc>organizationalRole</oc>
+        <rdn>cn</rdn>
+        <attr name="cn">
+          <column>0</column>
+        </attr>
+        <attr name="description">
+          <column>1</column>
+        </attr>
+      </object>
+    </storage>
+  </data>
+  <data name="SQL">
+    <handler name="Rewrite">
+      <libload>$WD/lib/LISM/Utils/lism_util.pl</libload>
+      <rewritemap name="date2time" type="function"/>
+      <rewritemap name="time2date" type="function"/>
+      <rewrite context="request" match="modifytimestamp: *([0-9]*Z)$" substitution="modifytimestamp: %{date2time('%1')}"/>
+      <rewrite context="searchResult" match="modifytimestamp: *([0-9]*)$" substitution="modifytimestamp: %{time2date('%1')}"/>
+    </handler>
+    <container>
+      <rdn>ou=SQL</rdn>
+      <oc>organizationalUnit</oc>
+      <attr name="description">SQL Server</attr>
+    </container>
+    <storage name="SQL" hash="MD5:hex">
+      <libload>$WD/lib/LISM/Utils/lism_util.pl</libload>
+      <dsn>DBI:mysql:LISM:localhost:9010;mysql_socket=$TEMPDIR/mysqld.sock;mysql_read_default_file=$TEMPDIR/my.cnf</dsn>
+      <admin>admin</admin>
+      <passwd>secret</passwd>
+      <mbcode>shiftjis</mbcode>
+      <object name="User">
+        <container>
+          <oname>Department</oname>
+          <fromtbls>users_departments_link</fromtbls>
+          <joinwhere>users.id = users_departments_link.uid and departments.id = users_departments_link.dpid</joinwhere>
+          <addproc>insert into users_departments_link(uid, dpid, modifytime) values('%o', '%c', %{time})</addproc>
+          <delproc>delete from users_departments_link where uid = '%o' and dpid = '%c'</delproc>
+        </container>
+        <table>users</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>Person</oc>
+        <oc>inetOrgPerson</oc>
+        <rdn>uid</rdn>
+        <attr name="uid">
+          <column>user_id</column>
+        </attr>
+        <attr name="cn">
+          <column>user_name</column>
+        </attr>
+        <attr name="userpassword">
+          <column>passwd</column>
+        </attr>
+        <attr name="mail">
+          <column>email</column>
+        </attr>
+        <attr name="modifytimestamp">
+          <column>modifytime</column>
+        </attr>
+        <attr name="telephonenumber">
+          <fromtbls>phones</fromtbls>
+          <selexpr>phones.phone</selexpr>
+          <joinwhere>users.id = phones.users_id</joinwhere>
+          <addproc>insert into phones(users_id, phone, modifytime) values('%o', '%a', %{time})</addproc>
+          <delproc>delete from phones where users_id = '%o' and phone = '%a'</delproc>
+        </attr>
+        <attr name="businesscategory">
+          <oname>Role</oname>
+          <fromtbls>users_groups_link</fromtbls>
+          <where>users.id = '%o' and groups.id = users_groups_link.gid and users.id=users_groups_link.uid</where>
+          <addproc>insert into users_groups_link(uid, gid) values('%o', '%a')</addproc>
+          <delproc>delete from users_groups_link where uid = '%o' and gid = '%a'</delproc>
+        </attr>
+        <attr name="seealso">
+          <oname>Group</oname>
+          <fromtbls>rcsv_users_groups_link</fromtbls>
+          <where>users.id = '%o' and rcsv_groups.id = rcsv_users_groups_link.gid and users.id=rcsv_users_groups_link.uid</where>
+          <addproc>insert into rcsv_users_groups_link(uid, gid) values('%o', '%a')</addproc>
+          <delproc>delete from rcsv_users_groups_link where uid = '%o' and gid = '%a'</delproc>
+        </attr>
+        <attr name="facsimiletelephonenumber">
+          <column>fax</column>
+          <delim>,</delim>
+        </attr>
+      </object>
+      <object name="Division">
+        <container>
+          <rdn>ou=People</rdn>
+          <oc>organizationalUnit</oc>
+        </container>
+        <table>divisions</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>division_name</column>
+        </attr>
+        <strginfo>
+          <value type="constant">enable</value>
+          <column>division_status</column>
+        </strginfo>
+        <strginfo>
+          <value type="function">($dn =~ /^ou=([^,]+),/mi)[0]</value>
+          <addproc>update divisions set division_longname = '%v Division' where id = '%o'</addproc>
+          <addproc>insert into categories(category_name, category_status) values('%v', '%{print "enable"}')</addproc>
+          <delproc>update divisions set division_longname = '' where id = '%o'</delproc>
+          <delproc>delete from categories where category_name = '%v'</delproc>
+        </strginfo>
+      </object>
+      <object name="Department">
+        <container>
+          <oname>Division</oname>
+          <fromtbls>divisions_departments_link</fromtbls>
+          <joinwhere>divisions.id = divisions_departments_link.dvid and departments.id = divisions_departments_link.dpid</joinwhere>
+          <addproc>insert into divisions_departments_link(dpid, dvid) values('%o', '%c')</addproc>
+          <delproc>delete from divisions_departments_link where dpid = '%o' and dvid = '%c'</delproc>
+        </container>
+        <table>departments</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>department_name</column>
+        </attr>
+        <strginfo>
+          <value type="constant">enable</value>
+          <column>department_status</column>
+        </strginfo>
+        <strginfo>
+          <value type="function">($dn =~ /^ou=([^,]+),/mi)[0]</value>
+          <addproc>update departments set department_longname = '%v Department' where id = '%o'</addproc>
+          <delproc>update divisions set division_longname = '' where id = '%o'</delproc>
+        </strginfo>
+      </object>
+      <object name="Role">
+        <container>
+          <oname>Category</oname>
+          <fromtbls>groups_categories_link</fromtbls>
+          <joinwhere>categories.id = groups_categories_link.cid and groups.id = groups_categories_link.gid</joinwhere>
+          <addproc>insert into groups_categories_link(gid, cid) values('%o', '%c')</addproc>
+          <delproc>delete from groups_categories_link where gid = '%o' and cid = '%c'</delproc>
+        </container>
+        <table>groups</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalRole</oc>
+        <rdn>cn</rdn>
+        <attr name="cn">
+          <column>group_name</column>
+        </attr>
+      </object>
+      <object name="Category">
+        <container>
+          <rdn>ou=Roles</rdn>
+          <oc>organizationalUnit</oc>
+        </container>
+        <table>categories</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>category_name</column>
+        </attr>
+        <strginfo>
+          <value type="constant">enable</value>
+          <column>category_status</column>
+          <joinwhere>categories.category_status='%v'</joinwhere>
+        </strginfo>
+      </object>
+      <object name="Group">
+        <container>
+          <oname>Group</oname>
+          <joinwhere>rcsv_groups.parentid = '%c'</joinwhere>
+          <addproc>update rcsv_groups set parentid = '%c' where id = %o</addproc>
+        </container>
+        <subcontainer>
+          <rdn>ou=Groups</rdn>
+          <oc>organizationalUnit</oc>
+        </subcontainer>
+        <table>rcsv_groups</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalRole</oc>
+        <rdn>cn</rdn>
+        <attr name="cn">
+          <column>group_name</column>
+        </attr>
+        <attr name="description">
+          <column>description</column>
+        </attr>
+      </object>
+    </storage>
+  </data>
+  <data name="CMPLXDB">
+    <container>
+      <rdn>ou=CMPLXDB</rdn>
+      <oc>organizationalUnit</oc>
+      <attr name="description">SQL Server</attr>
+    </container>
+    <storage name="SQL" hash="MD5:hex">
+      <dsn>DBI:mysql:LISM:localhost:9010;mysql_socket=$TEMPDIR/mysqld.sock;mysql_read_default_file=$TEMPDIR/my.cnf</dsn>
+      <admin>admin</admin>
+      <passwd>secret</passwd>
+      <mbcode>shiftjis</mbcode>
+      <object name="User">
+        <container>
+          <oname>Department</oname>
+          <fromtbls>cmplx_users_departments_link</fromtbls>
+          <joinwhere>cmplx_users.id = cmplx_users_departments_link.uid and cmplx_departments.id = cmplx_users_departments_link.dpid</joinwhere>
+          <addproc>insert into cmplx_users_departments_link(uid, dpid) values('%o', '%c')</addproc>
+          <delproc>delete from cmplx_users_departments_link where uid = '%o' and dpid = '%c'</delproc>
+        </container>
+        <subcontainer>
+          <rdn>ou=People</rdn>
+          <oc>organizationalUnit</oc>
+        </subcontainer>
+        <table>cmplx_users</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>Person</oc>
+        <oc>inetOrgPerson</oc>
+        <rdn>uid</rdn>
+        <attr name="uid">
+          <column>user_id</column>
+        </attr>
+        <attr name="cn">
+          <column>user_name</column>
+        </attr>
+        <attr name="userpassword">
+          <column>passwd</column>
+        </attr>
+        <attr name="mail">
+          <column>email</column>
+        </attr>
+        <attr name="businesscategory">
+          <oname>Role2</oname>
+          <fromtbls>cmplx_users_groups_link</fromtbls>
+          <where>cmplx_users.id = '%o' and cmplx_groups.id = cmplx_users_groups_link.gid and cmplx_users.id=cmplx_users_groups_link.uid</where>
+          <addproc>insert into cmplx_users_groups_link(uid, gid) values('%o', '%a')</addproc>
+          <delproc>delete from cmplx_users_groups_link where uid = '%o' and gid = '%a'</delproc>
+        </attr>
+      </object>
+      <object name="Division">
+        <table>cmplx_divisions</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>division_name</column>
+        </attr>
+      </object>
+      <object name="Department">
+        <container>
+          <oname>Division</oname>
+          <fromtbls>cmplx_divisions_departments_link</fromtbls>
+          <joinwhere>cmplx_divisions.id = cmplx_divisions_departments_link.dvid and cmplx_departments.id = cmplx_divisions_departments_link.dpid</joinwhere>
+          <addproc>insert into cmplx_divisions_departments_link(dpid, dvid) values('%o', '%c')</addproc>
+          <delproc>delete from cmplx_divisions_departments_link where dpid = '%o' and dvid = '%c'</delproc>
+        </container>
+        <table>cmplx_departments</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalUnit</oc>
+        <rdn>ou</rdn>
+        <attr name="ou">
+          <column>department_name</column>
+        </attr>
+      </object>
+      <object name="Role">
+        <container>
+          <oname>Division</oname>
+          <fromtbls>cmplx_groups_divisions_link</fromtbls>
+          <joinwhere>cmplx_divisions.id = cmplx_groups_divisions_link.dvid and cmplx_groups.id = cmplx_groups_divisions_link.gid</joinwhere>
+          <addproc>insert into cmplx_groups_divisions_link(gid, dvid) values('%o', '%c')</addproc>
+          <delproc>delete from cmplx_groups_divisions_link where gid = '%o' and dvid = '%c'</delproc>
+        </container>
+        <subcontainer>
+          <rdn>ou=Roles</rdn>
+          <oc>organizationalUnit</oc>
+        </subcontainer>
+        <table>cmplx_groups</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalRole</oc>
+        <rdn>cn</rdn>
+        <attr name="cn">
+          <column>group_name</column>
+        </attr>
+        <attr name="description">
+          <column>description</column>
+        </attr>
+        <strginfo>
+          <selwhere>cmplx_groups.parentid is NULL</selwhere>
+        </strginfo>
+      </object>
+      <object name="Role2">
+        <container>
+          <parent>Role</parent>
+          <oname>Role2</oname>
+          <joinwhere>cmplx_groups.parentid = %c</joinwhere>
+          <addproc>update cmplx_groups set parentid = %c where id = %o</addproc>
+        </container>
+        <table>cmplx_groups</table>
+        <id>
+          <column>id</column>
+        </id>
+        <oc>organizationalRole</oc>
+        <rdn>cn</rdn>
+        <attr name="cn">
+          <column>group_name</column>
+        </attr>
+        <attr name="description">
+          <column>description</column>
+        </attr>
+      </object>
+    </storage>
+  </data>
+  <data name="Slave">
+    <container>
+      <rdn>ou=Slave</rdn>
+      <oc>organizationalUnit</oc>
+      <attr name="description">Slave LDAP Server</attr>
+    </container>
+    <storage name="LDAP" hash="MD5">
+      <libload>$WD/lib/LISM/Utils/lism_util.pl</libload>
+      <uri>ldap://localhost:9012/dc=example,dc=com</uri>
+      <binddn>cn=Manager,dc=example,dc=com</binddn>
+      <bindpw>secret</bindpw>
+      <transaction>on</transaction>
+    </storage>
+  </data>
+  <data name="Slave2">
+    <container>
+      <rdn>ou=Slave2</rdn>
+      <oc>organizationalUnit</oc>
+      <attr name="description">Inactive Slave LDAP Server</attr>
+    </container>
+    <status>disable</status>
+    <storage name="LDAP" hash="MD5">
+      <uri>ldap://localhost:9013/dc=example,dc=com</uri>
+      <binddn>cn=Manager,dc=example,dc=com</binddn>
+      <bindpw>secret</bindpw>
+      <transaction>on</transaction>
+    </storage>
+  </data>
+  <data name="LDAP">
+    <container>
+      <rdn>ou=LDAP</rdn>
+      <oc>organizationalUnit</oc>
+      <attr name="description">Master LDAP Server</attr>
+    </container>
+    <access dn="uid=.*,*ou=People,ou=LDAP,dc=lism,dc=com">
+      <right op="write">
+        <type>self</type>
+        <dn>^uid=user*</dn>
+        <filter>(businessCategory=Tech)</filter>
+      </right>
+      <right op="read">
+        <type>*</type>
+      </right>
+    </access>
+    <access dn="cn=([^,]*),ou=App,ou=Roles,ou=LDAP,dc=lism,dc=com">
+      <right op="write">
+        <dn>^uid=%1</dn>
+        <filter>(businessCategory=%1)</filter>
+      </right>
+    </access>
+    <access dn=".*,o=company01.com,ou=LDAP,dc=lism,dc=com">
+      <right op="read">
+        <dn>^uid=pauser0003</dn>
+      </right>
+    </access>
+    <handler name="Script" useprevious="on">
+      <lock>$TEMPDIR/script.lock</lock>
+      <execrule type="post" dn="uid=.*,ou=People,ou=LDAP,dc=lism,dc=com" match="mail:*">
+        <op name="add">
+          <script>$WD/t/writeinfo.sh '$TEMPDIR/%r.csv' '%r' '%i'</script>
+        </op>
+        <op name="modify">
+          <script>$WD/t/writeinfo.sh '$TEMPDIR/%r.csv' '%r' '%i' '%o'</script>
+        </op>
+      </execrule>
+      <execrule type="post" dn="uid=.*,ou=People,ou=LDAP,dc=lism,dc=com">
+        <op name="delete">
+          <script>rm -f $TEMPDIR/%r.csv</script>
+        </op>
+      </execrule>
+      <execrule type="post" dn="uid=user1(3|4),.*,ou=People,ou=LDAP,dc=lism,dc=com">
+        <op name="modify" rollback="on">
+          <script>$WD/t/error.sh</script>
+        </op>
+        <op name="delete" rollback="on">
+          <script>$WD/t/error.sh</script>
+        </op>
+      </execrule>
+    </handler>
+    <handler name="Setval">
+      <libload>$WD/lib/LISM/Utils/lism_util.pl</libload>
+      <entry dn="uid=.*,ou=People,ou=LDAP,dc=lism,dc=com">
+        <default name="cn">
+          <value type="function">($entryStr =~ /^uid: (.*)$/mi)[0]</value>
+        </default>
+        <default name="sn">
+          <value type="constant">default</value>
+        </default>
+      </entry>
+      <entry dn="cn=.*,ou=People,ou=LDAP,dc=lism,dc=com">
+        <addition name="sn">
+          <value type="function">getValue($entryStr, 'cn')</value>
+        </addition>
+      </entry>
+      <entry dn="mail=.*,ou=People,ou=LDAP,dc=lism,dc=com">
+        <replace name="objectClass">
+          <value type="constant">account</value>
+          <value type="constant">inetOrgPerson</value>
+        </replace>
+      </entry>
+    </handler>
+    <handler name="Check">
+      <libload>$DATADIR/check.pl</libload>
+      <file>$TEMPDIR/check.log</file>
+      <check dn="ou=Check,ou=Master,dc=lism,dc=com" filter="(objectClass=Person)">
+        <attr name="cn">
+          <minlen>2</minlen>
+          <maxlen>4</maxlen>
+        </attr>
+        <attr name="sn">
+          <regexp>[a-zA-Z]+</regexp>
+          <function>checkSurename</function>
+        </attr>
+        <attr name="givenName">
+          <required>on</required>
+        </attr>
+        <attr name="ou">
+          <lismexist>ou=LDAP,dc=lism,dc=com?ou?one</lismexist>
+        </attr>
+      </check>
+    </handler>
+    <storage name="LDAP" hash="MD5">
+      <libload>$WD/lib/LISM/utils/lism_util.pl</libload>
+      <uri>ldap://localhost:9011/dc=example,dc=com</uri>
+      <binddn>cn=Manager,dc=example,dc=com</binddn>
+      <bindpw>secret</bindpw>
+      <transaction>on</transaction>
+      <ldapmap type="objectclass" local="Account" foreign="organizationalPerson"/>
+      <ldapmap type="attribute" local="employeetype" foreign="description"/>
+    </storage>
+  </data>
+  <data name="SOAP">
+    <container>
+      <oc>organizationalUnit</oc>
+      <rdn>ou=SOAP</rdn>
+    </container>
+    <storage name="SOAP">
+      <uri>http://localhost:8888/SoapLdap</uri>
+      <proxy>http://localhost:8888/soap2ldap.cgi</proxy>
+      <basedn>dc=example,dc=com</basedn>
+      <binddn>cn=Manager,dc=example,dc=com</binddn>
+      <bindpw>secret</bindpw>
+    </storage>
+  </data>
+  <data name="BADSOAP">
+    <container>
+      <oc>organizationalUnit</oc>
+      <rdn>ou=BADSOAP</rdn>
+    </container>
+    <storage name="SOAP">
+      <uri>http://localhost:8889/SoapLdap</uri>
+      <proxy>http://localhost:8889/badsoap2ldap.cgi</proxy>
+      <basedn>dc=example,dc=com</basedn>
+      <binddn>cn=Manager,dc=example,dc=com</binddn>
+      <bindpw>secret</bindpw>
+    </storage>
+  </data>
+</config>

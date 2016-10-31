@@ -1,0 +1,10 @@
+dn: uid=ユーザ0305, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}g0cMPLQnYs1hkgKPpqYUyLMJc44=
+uid:: 44Om44O844K2MDMwNQ==
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDMwNQ==
+mail: user0305@lism.org

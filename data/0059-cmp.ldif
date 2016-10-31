@@ -1,0 +1,23 @@
+dn: cn=cluster-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: cluster-sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrnode: SQL
+lismsyncerrnode: Slave
+lismsyncerrmessage: cn=mail-server,c=japan,ou=computers,ou=slave,dc=lism,dc=co
+ m "The entry doesn't exist in cluster"
+lismsyncerrmessage: cn=mail-server,ou=computers,ou=csv,dc=lism,dc=com "The ent
+ ry doesn't exist in cluster"
+lismsyncerrmessage: cn=tech,ou=app,ou=roles,ou=csv,dc=lism,dc=com "The entry d
+ oesn't exist in cluster"
+lismsyncerrmessage: cn=tech,ou=app,ou=roles,ou=slave,dc=lism,dc=com "The entry
+  doesn't exist in cluster"
+lismsyncerrmessage: cn=tech,ou=app,ou=roles,ou=sql,dc=lism,dc=com "The entry d
+ oesn't exist in cluster"
+lismsyncerrmessage: cn=wuser0001,ou=app,ou=roles,ou=csv,dc=lism,dc=com "The en
+ try doesn't exist in cluster"
+lismsyncerrmessage: cn=wuser0001,ou=app,ou=roles,ou=slave,dc=lism,dc=com "The 
+ entry doesn't exist in cluster"
+lismsyncerrmessage: cn=wuser0001,ou=app,ou=roles,ou=sql,dc=lism,dc=com "The en
+ try doesn't exist in cluster"

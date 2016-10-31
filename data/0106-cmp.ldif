@@ -1,0 +1,11 @@
+dn: ou=Groups, ou=sql, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly
+
+dn: ou=People, ou=sql, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly
+
+dn: ou=Roles, ou=sql, dc=lism, dc=com
+ou: attrOnly
+objectclass: attrOnly

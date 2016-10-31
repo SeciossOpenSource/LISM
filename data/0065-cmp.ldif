@@ -1,0 +1,54 @@
+dn: uid=user0003, ou=sales, ou=it, ou=people, ou=ldap2, dc=lism, dc=com
+userpassword: {MD5}ZJadl/LN6H3ZYELEKS7njg==
+uid: user0003
+cn: user0003
+sn: user0003
+mail: user0003@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user(), ou=tech, ou=it, ou=people, ou=ldap2, dc=lism, dc=com
+userpassword: {MD5}1nHnhp4o0zOnJPee4v4mrw==
+uid: user()
+cn: user()
+sn: user()
+mail: user()@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=user0006, ou=tech, ou=it, ou=people, ou=ldap2, dc=lism, dc=com
+uid: user0006
+cn: csv0006
+sn: csv0006
+mail: user0006@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+userpassword: {MD5}THI6moKG9hsc0oLjYDSU3w==
+
+dn: uid=user0004, ou=tech, ou=machine, ou=people, ou=ldap2, dc=lism, dc=com
+userpassword: {MD5}PL/4/1yGuC1eR26yTDU6NA==
+uid: user0004
+cn: user0004
+sn: user0004
+mail: user0004@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+telephonenumber: 23-4567-8901
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=ldap2,dc=lism,dc=com
+businesscategory: cn=IT,ou=Department,ou=roles,ou=ldap2,dc=lism,dc=com
+businesscategory: cn=Sales,ou=Department,ou=roles,ou=ldap2,dc=lism,dc=com
+
+dn: uid=user0005, ou=tech, ou=machine, ou=people, ou=ldap2, dc=lism, dc=com
+uid: user0005
+cn: user0005
+sn: user0005
+mail: user0005@lism.com
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: uid=admin, ou=people, ou=ldap2, dc=lism, dc=com
+uid: admin
+cn: admin
+sn: admin
+objectclass: inetOrgPerson
+objectclass: person

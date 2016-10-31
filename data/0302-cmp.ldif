@@ -1,0 +1,11 @@
+dn: uid=user0301, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Admin,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}5wCKpxl51R0si/pqRd6Je5W+fk8=
+uid: user0301
+telephonenumber: 01-2345-6789
+telephonenumber: 23-4567-8901
+cn:: 44Om44O844K2MDMwMQ==
+mail: user0301@lism.com
+o: Machine(ou=machine,ou=people,ou=csv,dc=lism,dc=com)

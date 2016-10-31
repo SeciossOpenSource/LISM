@@ -1,0 +1,62 @@
+dn: uid=user0010, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {SHA}kjJ4XkXtlucP6bDKAbZVhonOGqA=
+uid: user0010
+cn: csvuser0010
+sn: csvuser0010
+mail: csvuser0010@lism.com
+
+dn: uid=user0010, ou=tech, ou=it, ou=people, ou=ldap2, dc=lism, dc=com
+uid: user0010
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+userpassword: {MD5}YEJfAlzi64/oLug+X3S0KA==
+objectclass: inetOrgPerson
+objectclass: person
+cn: csvuser0010
+sn: csvuser0010
+mail: csvuser0010@lism.com
+
+dn: uid=user0010, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+uid: user0010
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+userpassword: {MD5}YEJfAlzi64/oLug+X3S0KA==
+objectclass: inetOrgPerson
+objectclass: person
+cn: csvuser0010
+sn: csvuser0010
+mail: csvuser0010@lism.com
+
+dn: uid=user0010, ou=tech, ou=it, ou=people, ou=slave, dc=lism, dc=com
+uid: user0010
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+userpassword: {MD5}YEJfAlzi64/oLug+X3S0KA==
+objectclass: inetOrgPerson
+objectclass: person
+cn: csvuser0010
+sn: csvuser0010
+mail: csvuser0010@lism.com
+
+dn: uid=user0010, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+uid: user0010
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+userpassword: {MD5}YEJfAlzi64/oLug+X3S0KA==
+objectclass: inetOrgPerson
+objectclass: person
+cn: csvuser0010
+sn: csvuser0010
+mail: csvuser0010@lism.com
+
+dn: uid=user0010, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}YEJfAlzi64/oLug+X3S0KA==
+uid: user0010
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn: user0010
+mail: csvuser0010@lism.com

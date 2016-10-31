@@ -1,0 +1,29 @@
+dn: cn=user1303, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}v/97e0OXwfp/3cRNh2twaQ==
+uid: user1303
+cn: user1303
+sn: user1303
+mail: user1303@lism.com
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: cn=user1303, ou=tech, ou=it, ou=people, ou=master, dc=lism, dc=com
+userpassword: {MD5}v/97e0OXwfp/3cRNh2twaQ==
+uid: user1303
+cn: user1303
+sn: user1303
+mail: user1303@lism.com
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+
+dn: cn=user1303, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+userpassword: {MD5}v/97e0OXwfp/3cRNh2twaQ==
+uid: user1303
+cn: user1303
+sn: user1303
+mail: user1303@lism.com
+objectclass: inetOrgPerson
+objectclass: organizationalPerson
+objectclass: person

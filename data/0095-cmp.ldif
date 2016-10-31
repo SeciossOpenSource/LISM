@@ -1,0 +1,3 @@
+dn: o=company01.com, ou=master, dc=lism, dc=com
+objectclass: organization
+o: company01.com

@@ -1,0 +1,11 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com
+  "The value is inconsistent in cluster: attr='mail' expect='user0001@lism.org
+ ' current='sync-csv0001@lism.com'"
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=csv,dc=lism,dc=com
+  "The value is inconsistent in master: attr='mail' expect='sync-csv0001@lism.
+ com' current='user0001@lism.org'"

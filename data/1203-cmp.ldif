@@ -1,0 +1,19 @@
+dn: cn=Admin, ou=App, ou=Roles, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Developer, ou=App, ou=Roles, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Developer
+
+dn: cn=Guest, ou=App, ou=Roles, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: cn=Maintainer, ou=App, ou=Roles, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Maintainer
+
+dn: cn=User, ou=App, ou=Roles, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: User

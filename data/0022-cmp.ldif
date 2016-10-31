@@ -1,0 +1,11 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: SQL
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=sql,dc=lism,dc=com
+  "The value is inconsistent in cluster: attr='userPassword' expect='{MD5}VKKW
+ M8gQVFKdwkt2BQCLJQ==' current='{MD5}O2DgqH3Vr4efFAG6b1ljVw=='"
+lismsyncerrmessage: uid=user0001,ou=tech,ou=it,ou=people,ou=sql,dc=lism,dc=com
+  "The value is inconsistent in master: attr='userPassword' expect='{MD5}O2Dgq
+ H3Vr4efFAG6b1ljVw==' current='{MD5}VKKWM8gQVFKdwkt2BQCLJQ=='"

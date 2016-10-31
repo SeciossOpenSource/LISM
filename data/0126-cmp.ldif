@@ -1,0 +1,11 @@
+dn: uid=user0105, ou=Tech, ou=IT, ou=people, ou=sql, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+userpassword: {MD5}1i5+1cF3yEDUA4Ds3VZFOQ==
+uid: user0105
+cn: user0105
+mail: user0105@lism.com
+seealso: cn=Group111, cn=Unit11, cn=Department1, ou=Groups, ou=sql, dc=lism, d
+ c=com
+seealso: cn=Group221, cn=Unit22, cn=Department2, ou=Groups, ou=sql, dc=lism, d
+ c=com

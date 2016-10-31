@@ -1,0 +1,8 @@
+dn: cn=wuser0001,ou=App,ou=Roles,ou=LDAP,dc=lism,dc=com
+objectClass: organizationalRole
+cn: wuser0001
+
+dn: cn=Tech,ou=App,ou=Roles,ou=LDAP,dc=lism,dc=com
+objectClass: organizationalRole
+cn: Tech
+

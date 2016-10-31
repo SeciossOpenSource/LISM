@@ -1,0 +1,20 @@
+dn: cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Department1
+
+dn: cn=Unit11, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit11
+
+dn: cn=Group111, cn=Unit11, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Group111
+description: Group111
+
+dn: cn=Unit12, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit12
+
+dn: cn=Group121, cn=Unit12, cn=Department1, ou=Groups, ou=CSV, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Group121

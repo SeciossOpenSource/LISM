@@ -1,0 +1,24 @@
+dn: ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user11,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user11
+mail: user11@lism.com
+userPassword: user11
+cn: user11
+sn: user11
+
+dn: uid=user12,ou=Tech,ou=IT,ou=People,ou=LDAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user12
+userPassword: user12
+cn: user12
+sn: user12

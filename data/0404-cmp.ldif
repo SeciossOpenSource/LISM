@@ -1,0 +1,7 @@
+dn: uid=user0401, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+uid: user0401
+userpassword: user0401
+sn:: 44Om44O844K2MDQwMQ==
+objectclass: inetOrgPerson
+objectclass: person
+cn:: 5pu05paw44Om44O844K2MDQwMQ==

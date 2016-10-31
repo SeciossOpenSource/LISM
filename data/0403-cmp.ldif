@@ -1,0 +1,12 @@
+dn: uid=user0401, ou=tech, ou=it, ou=people, ou=soap, dc=lism, dc=com
+uid: user0401
+userpassword: user0401
+sn:: 44Om44O844K2MDQwMQ==
+objectclass: inetOrgPerson
+objectclass: person
+cn:: 5pu05paw44Om44O844K2MDQwMQ==
+mail: user0401@lism.org
+telephonenumber: 01-2345-6789
+telephonenumber: 34-5678-9012
+businesscategory: cn=Admin,ou=App,ou=Roles,dc=example,dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,dc=example,dc=com

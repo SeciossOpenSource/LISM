@@ -1,0 +1,11 @@
+dn: ou=IT, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Machine, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Support, ou=cmplxdb, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Support

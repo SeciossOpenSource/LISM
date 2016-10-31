@@ -1,0 +1,4 @@
+dn: ou=consulting, ou=people, ou=slave, dc=lism, dc=com
+ou: Consulting
+description: Consulting Department
+objectclass: organizationalUnit

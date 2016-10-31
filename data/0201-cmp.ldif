@@ -1,0 +1,61 @@
+dn: ou=ldap, dc=lism, dc=com
+ou: ldap
+objectclass: organizationalUnit
+description: Master LDAP Server
+
+dn: ou=People, ou=ldap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: People
+
+dn: ou=Roles, ou=ldap, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Roles
+
+dn: ou=it, ou=people, ou=ldap, dc=lism, dc=com
+ou: IT
+objectclass: organizationalUnit
+
+dn: ou=sales, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+ou: Sales
+objectclass: organizationalUnit
+
+dn: ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+ou: Tech
+objectclass: organizationalUnit
+
+dn: uid=user0201, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}IXMUBHguWc9galVhEZ8stw==
+uid: user0201
+cn:: 44Om44O844K2MDIwMQ==
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+employeetype:: 5q2j56S+5ZOh
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+businesscategory: cn=Admin,ou=App,ou=Roles,ou=ldap,dc=lism,dc=com
+businesscategory: cn=Guest,ou=App,ou=Roles,ou=ldap,dc=lism,dc=com
+sn:: 44Om44O844K2MDIwMQ==
+mail: user0201@lism.com
+
+dn: uid=user0202, ou=tech, ou=it, ou=people, ou=ldap, dc=lism, dc=com
+userpassword: {MD5}dx+ii+LxA0X95kxGeYnkbw==
+uid: user0202
+cn:: 5pS56KGMCuODpuODvOOCtjAyMDI=
+objectclass: Account
+objectclass: inetOrgPerson
+objectclass: person
+sn:: 5pS56KGMCuODpuODvOOCtjAyMDI=
+mail: user0202@lism.com
+
+dn: ou=app, ou=roles, ou=ldap, dc=lism, dc=com
+ou: App
+objectclass: organizationalUnit
+
+dn: cn=admin, ou=app, ou=roles, ou=ldap, dc=lism, dc=com
+cn: Admin
+objectclass: organizationalRole
+
+dn: cn=guest, ou=app, ou=roles, ou=ldap, dc=lism, dc=com
+cn: Guest
+objectclass: organizationalRole

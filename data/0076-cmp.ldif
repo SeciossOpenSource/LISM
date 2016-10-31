@@ -1,0 +1,4 @@
+dn: cn=Admin, ou=Roles, ou=IT, ou=CMPLXDB, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+description: Administrator

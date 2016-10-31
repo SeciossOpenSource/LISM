@@ -1,0 +1,51 @@
+dn: cn=Department1,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Department1
+
+dn: cn=Department2,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Department2
+
+dn: cn=Unit11,cn=Department1,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Unit11
+
+dn: cn=Unit12,cn=Department1,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Unit12
+
+dn: cn=Unit21,cn=Department2,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Unit21
+
+dn: cn=Unit22,cn=Department2,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Unit22
+
+dn: cn=Group111,cn=Unit11,cn=Department1,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Group111
+
+dn: cn=Group121,cn=Unit12,cn=Department1,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Group121
+
+dn: cn=Group211,cn=Unit21,cn=Department2,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Group211
+
+dn: cn=Group221,cn=Unit22,cn=Department2,ou=Groups,ou=CSV,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Group221
+
+dn: uid=user0306,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0306
+mail: user0306@lism.com
+userPassword: user0306
+cn: user0306
+sn: user0306
+seeAlso: cn=Unit11,cn=Department1,ou=Groups,ou=CSV,dc=lism,dc=com
+seeAlso: cn=Group211,cn=Unit21,cn=Department2,ou=Groups,ou=CSV,dc=lism,dc=com
+

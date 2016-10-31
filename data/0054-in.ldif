@@ -1,0 +1,22 @@
+dn: c=Japan,ou=Computers,ou=Master,dc=lism,dc=com
+objectclass: country
+c: Japan
+
+dn: c=USA,ou=Computers,ou=Master,dc=lism,dc=com
+objectclass: country
+c: USA
+
+dn: cn=LDAP-Server,c=Japan,ou=Computers,ou=Master,dc=lism,dc=com
+objectclass: device
+cn: LDAP-Server
+l: Japan
+
+dn: cn=DB-Server,c=Japan,ou=Computers,ou=Master,dc=lism,dc=com
+objectclass: device
+cn: DB-Server
+l: Japan
+
+dn: cn=LDAP-Server,c=USA,ou=Computers,ou=LDAP,dc=lism,dc=com
+objectclass: device
+cn: LDAP-Server
+l: USA

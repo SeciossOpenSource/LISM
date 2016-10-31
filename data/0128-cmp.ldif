@@ -1,0 +1,7 @@
+dn: cn=Unit11, cn=Department1, ou=Groups, ou=SQL, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit11
+
+dn: cn=Unit12, cn=Department1, ou=Groups, ou=SQL, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Unit12

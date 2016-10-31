@@ -1,0 +1,4 @@
+dn: cn=Mail-Server,c=Japan,ou=Computers,ou=LDAP,dc=lism,dc=com
+objectclass: device
+cn: Mail-Server
+l: Japan

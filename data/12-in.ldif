@@ -1,0 +1,55 @@
+dn: ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: ou=Department,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Department
+
+dn: cn=Admin,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: cn=User,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: User
+description: Employee
+roleOccupant: uid=user1201,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+roleOccupant: uid=user1202,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+
+dn: cn=Developer,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Developer
+
+dn: cn=Maintainer,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Maintainer
+
+dn: cn=Tech,ou=Department,ou=Roles,ou=LDAP,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Tech
+seeAlso: cn=Developer,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+seeAlso: cn=Maintainer,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com
+
+dn: ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user1201,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user1201
+mail: user1201@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+userPassword: user1201
+cn: ユーザ1201
+title: cn=Tech,ou=Department,ou=Roles,ou=LDAP,dc=lism,dc=com

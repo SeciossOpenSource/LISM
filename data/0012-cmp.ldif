@@ -1,0 +1,7 @@
+dn: cn=cluster-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: cluster-sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrmessage: uid=user0007,ou=sales,ou=it,ou=people,ou=csv,dc=lism,dc=co
+ m "The entry may be invalid in cluster"

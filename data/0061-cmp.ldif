@@ -1,0 +1,11 @@
+dn: cn=cluster-sync, dc=lism, dc=com
+objectclass: lismSync
+cn: cluster-sync
+lismsyncstatus: nosync
+lismsyncerrnode: CSV
+lismsyncerrnode: Slave
+lismsyncerrmessage: cn=mail-server,c=japan,ou=computers,ou=slave,dc=lism,dc=co
+ m "The value is inconsistent in cluster: attr='l' expect='Tokyo' current='Jap
+ an'"
+lismsyncerrmessage: cn=mail-server,ou=computers,ou=csv,dc=lism,dc=com "The val
+ ue is inconsistent in cluster: attr='l' expect='Tokyo' current='Japan'"

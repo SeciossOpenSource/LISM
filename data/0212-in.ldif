@@ -1,0 +1,14 @@
+dn: uid=user0201,ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+objectclass: Account
+uid: user0201
+mail: user0201@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Admin,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=Master,dc=lism,dc=com
+userPassword: user0201
+cn: ユーザ0201
+sn: ユーザ0201
+employeeType: 正社員

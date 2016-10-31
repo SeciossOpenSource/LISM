@@ -1,0 +1,7 @@
+dn: cn=sync, dc=lism, dc=com
+objectclass: lismSync
+cn: sync
+lismsyncstatus: nosync
+lismsyncerrnode: Slave
+lismsyncerrmessage: uid=admin,ou=people,ou=slave,dc=lism,dc=com "The entry doe
+ sn't exist in cluster"

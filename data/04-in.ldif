@@ -1,0 +1,40 @@
+dn: ou=App,ou=Roles,ou=SOAP,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: cn=Guest,ou=App,ou=Roles,ou=SOAP,dc=lism,dc=com
+objectclass: organizationalRole
+cn: Guest
+
+dn: ou=IT,ou=People,ou=SOAP,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Tech,ou=IT,ou=People,ou=SOAP,dc=lism,dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user0401,ou=Tech,ou=IT,ou=People,ou=SOAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0401
+mail: user0401@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=SOAP,dc=lism,dc=com
+userPassword: user0401
+cn: ユーザ0401
+sn: ユーザ0401
+
+dn: uid=user0402,ou=Tech,ou=IT,ou=People,ou=SOAP,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0402
+mail: user0402@lism.com
+telephoneNumber: 01-2345-6789
+telephoneNumber: 12-3456-7890
+businessCategory: cn=Guest,ou=App,ou=Roles,ou=SOAP,dc=lism,dc=com
+userPassword: user0402
+cn: ユーザ0402
+sn: ユーザ0402
+

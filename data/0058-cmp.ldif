@@ -1,0 +1,29 @@
+dn: cn=DB-Server, ou=computers, ou=csv, dc=lism, dc=com
+objectclass: device
+l: Japan
+ou: Tech
+cn: DB-Server
+
+dn: cn=db-server, c=japan, ou=computers, ou=ldap, dc=lism, dc=com
+l: Japan
+cn: DB-Server
+objectclass: device
+ou: Tech
+
+dn: cn=db-server, c=japan, ou=computers, ou=master, dc=lism, dc=com
+l: Japan
+cn: DB-Server
+objectclass: device
+ou: Tech
+
+dn: cn=db-server, c=japan, ou=computers, ou=slave, dc=lism, dc=com
+l: Japan
+cn: DB-Server
+objectclass: device
+ou: Tech
+
+dn: cn=db-server, c=japan, ou=computers, ou=soap, dc=lism, dc=com
+l: Japan
+cn: DB-Server
+objectclass: device
+ou: Tech

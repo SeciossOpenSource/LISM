@@ -1,0 +1,17 @@
+dn: uid=user0008,ou=Tech,ou=IT,ou=People,ou=CSV,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0008
+mail: user0008@lism.com
+userPassword: user0008
+cn: user0008
+sn: user0008
+
+dn: uid=user0008,ou=Tech,ou=IT,ou=People,ou=Master,dc=lism,dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+uid: user0008
+mail: user0008@lism.com
+userPassword: user0008
+cn: user0008
+sn: user0008

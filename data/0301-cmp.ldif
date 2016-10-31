@@ -1,0 +1,133 @@
+dn: ou=csv, dc=lism, dc=com
+ou: csv
+objectclass: organizationalUnit
+description: CSV File
+
+dn: ou=Company, ou=csv, dc=lism, dc=com
+ou: Company
+objectclass: organizationalUnit
+
+dn: ou=Computers, ou=csv, dc=lism, dc=com
+ou: Computers
+objectclass: organizationalUnit
+
+dn: ou=Groups, ou=csv, dc=lism, dc=com
+ou: Groups
+objectclass: organizationalUnit
+
+dn: ou=People, ou=csv, dc=lism, dc=com
+ou: People
+objectclass: organizationalUnit
+
+dn: ou=Roles, ou=csv, dc=lism, dc=com
+ou: Roles
+objectclass: organizationalUnit
+
+dn: c=Japan, ou=company, ou=csv, dc=lism, dc=com
+c: Japan
+objectclass: country
+
+dn: ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: IT
+
+dn: ou=Sales, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: uid=user0303, ou=Sales, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}q0XYwUQ6+I4FiTWa6ftEiPPRC60=
+uid: user0303
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDMwMw==
+mail: user0303@lism.com
+
+dn: ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user(), ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}eNJde/yJTQW5z4C0C+Jhjop/edA=
+uid: user()
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2KCk=
+mail: user()@lism.com
+
+dn: uid=user0301, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}5wCKpxl51R0si/pqRd6Je5W+fk8=
+uid: user0301
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDMwMQ==
+mail: user0301@lism.com
+o: IT(ou=it,ou=people,ou=csv,dc=lism,dc=com)
+
+dn: uid=user0302, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}NMl2/t2xZddxkGAKVjWnXPi/YB4=
+uid: user0302
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDMwMg==
+mail: user0302@lism.com
+o: IT(ou=it,ou=people,ou=csv,dc=lism,dc=com)
+
+dn: uid=ユーザ0305, ou=Tech, ou=IT, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}g0cMPLQnYs1hkgKPpqYUyLMJc44=
+uid:: 44Om44O844K2MDMwNQ==
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDMwNQ==
+mail: user0305@lism.com
+
+dn: ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Machine
+
+dn: ou=Sales, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Sales
+
+dn: ou=Tech, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: Tech
+
+dn: uid=user0304, ou=Tech, ou=Machine, ou=people, ou=csv, dc=lism, dc=com
+objectclass: Person
+objectclass: inetOrgPerson
+businesscategory: cn=Guest,ou=App,ou=roles,ou=csv,dc=lism,dc=com
+userpassword: {SHA}LXRPgXpVkwvEREEWwnviTkchk24=
+uid: user0304
+telephonenumber: 01-2345-6789
+telephonenumber: 12-3456-7890
+cn:: 44Om44O844K2MDMwNA==
+mail: user0304@lism.com
+o: Machine(ou=machine,ou=people,ou=csv,dc=lism,dc=com)
+
+dn: ou=App, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalUnit
+ou: App
+
+dn: cn=Admin, ou=App, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Admin
+
+dn: cn=Guest, ou=App, ou=roles, ou=csv, dc=lism, dc=com
+objectclass: organizationalRole
+cn: Guest
