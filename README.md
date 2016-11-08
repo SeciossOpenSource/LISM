@@ -1,5 +1,11 @@
 # LISM
-LISM(LDAP Identity Synchronization Manager)は、LDAP、リレーショナルデータベース、CSVファイルといった様々形式で管理されているID情報を、LDAPインターフェースを通して一元的に管理することができるオープンソースソフトウェアです。
+LISM(LDAP Identity Synchronization Manager)は、LDAP、リレーショナルデータベース、CSVファイルといった様々形式で管理されているID情報を、LDAPインターフェースを通して一元的に管理することができるオープンソースの統合ID管理ソフトウェアです。
+
+## 概要
+統合ID管理ソフトウェア「LISMは」、様々なシステムに分散したID情報や役割（ロール）情報を一元的に管理することができるソフトウェアです。
+LISMは、システムの情報を１つのLDAPディレクトリツリーとして管理し、連携先の各システムの情報はそれぞれサブツリーに分かれて管理されています。マスタデータとなるLDAPサーバの情報については、ou=LDAPとou=Masterの配下に表示され、ou=Master配下の情報がマスタデータとして扱われます。
+
+そのため、LISMのマスタデータ（OpenLDAP）に対して更新を行うことで、連携されている Active Directory、LDAP、RDBMSや、CSVファイル出力、RESTful API、SOAP　APIを持ったWebサービスに対してID情報をの更新内容をリアルタイムで同期することができます。ID情報の管理は、基本的にマスタデータに対して操作のみの一元管理を実現します。
 
 ## 動作環境
 * OS：CentOS7、Redhat Enterprise Linux 7
@@ -13,8 +19,15 @@ EPELのリポジトリを追加します。
 * Redhat Enterprise Linux 7の場合  
 `# rpm -ivh http://ftp.riken.jp/Linux/fedora/epel/epel-release-latest-7.noarch.rpm`
 
+SELinuxを無効にします。  
+一時的に無効にするには以下を実行して下さい。
+
+`# setenforce 0`
+
+それから、/etc/selinux/configのSELINUXをpermissive、またはdisalbedに変更して下さい。
+
 ### LISMのインストール
-githubのpackages/LISM-4.x.x-x.x86_64.tar.gzをダウンロード、展開して、インストールスクリプト(install.sh)を実行して下さい。  
+githubのpackages/LISM-4.x.x-x.x86_64.tar.gzを展開して、インストールスクリプト(install.sh)を実行して下さい。  
 `# ./isntall.sh install`
 
 必要なパッケージが不足している場合、一覧表示され、自動的にインストールします。
