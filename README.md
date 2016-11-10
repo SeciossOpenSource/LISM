@@ -26,6 +26,114 @@ SELinuxを無効にします。
 
 それから、/etc/selinux/configのSELINUXをpermissive、またはdisalbedに変更して下さい。
 
+### LISM用OpenLDAPサーバの設定
+LISMの管理用LDAPサーバとして利用するための設定を行います。パッケージファイル内にある「secioss_ldif」フォルダ以下をOpneLDAPをインストールしたサーバにコピー（ディレクトリは何処でも構いません）して下さい。
+「secioss_ldif」フォルダ内には5つのldifファイルがあります。これらのファイルを編集し、LDAPの初期設定を行います。
+1.admin.ldif
+2.schema.ldif
+5.module.ldif
+
+OpenLDAPの管理者パスワードをadmin.ldifの「olcRootPW」に記述して、以下のコマンドを実行して下さい。
+
+`# ldapmodify -Y EXTERNAL -H ldapi:// -f admin.ldif`
+
+スキーマを以下のコマンドを実行して、適用して下さい。
+
+`# ldapmodify -Y EXTERNAL -H ldapi:// -f schema.ldif`
+
+必要なモジュールの設定を以下のコマンドを実行して、適用して下さい。
+
+`# ldapmodify -Y EXTERNAL -H ldapi:// -f module.ldif`
+
+全ての設定が完了したら、OpenLDAPを再起動します。
+
+`systemctl restart slapd`
+
+次に、LDAPサーバに以下のLDIFファイルを登録して下さい。
+suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下さい。
+
+    dn: dc=example,dc=com
+    changetype: add
+    objectClass: domain
+    dc: example
+    
+    dn: o=System,dc=example,dc=com
+    changetype: add
+    objectClass: organization
+    objectClass: seciossTenant
+    o: System
+    
+    dn: ou=People,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: People
+    
+    dn: ou=Groups,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Groups
+    
+    dn: ou=Administrators,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Administrators
+    
+    dn: ou=Organizations,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Organizations
+    businessCategory: invisible
+    
+    dn: ou=Metadata,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Metadata
+    
+    dn: ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Config
+    
+    dn: ou=Autologin,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Autologin
+    
+    dn: ou=APIClients,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: APIClients
+    
+    dn: ou=OAuth,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: OAuth
+    
+    dn: ou=OpenID,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: OpenID
+    
+    dn: ou=OpenIDProviders,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: OpenIDProviders
+    
+    dn: ou=OIDC,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: OIDC
+    
+    dn: ou=Roles,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Roles
+    
+    dn: ou=Profiles,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Profiles
+
 ### LISMのインストール
 githubのpackages/LISM-4.x.x-x.x86_64.tar.gzを展開して、インストールスクリプト(install.sh)を実行して下さい。  
 `# ./isntall.sh install`
