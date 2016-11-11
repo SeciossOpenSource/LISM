@@ -73,11 +73,6 @@ suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下�
     objectClass: organizationalUnit
     ou: Groups
     
-    dn: ou=Administrators,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Administrators
-    
     dn: ou=Organizations,dc=example,dc=com
     changetype: add
     objectClass: organizationalUnit
@@ -88,46 +83,6 @@ suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下�
     changetype: add
     objectClass: organizationalUnit
     ou: Metadata
-    
-    dn: ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Config
-    
-    dn: ou=Autologin,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Autologin
-    
-    dn: ou=APIClients,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: APIClients
-    
-    dn: ou=OAuth,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: OAuth
-    
-    dn: ou=OpenID,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: OpenID
-    
-    dn: ou=OpenIDProviders,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: OpenIDProviders
-    
-    dn: ou=OIDC,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: OIDC
-    
-    dn: ou=Roles,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Roles
     
     dn: ou=Profiles,dc=example,dc=com
     changetype: add
