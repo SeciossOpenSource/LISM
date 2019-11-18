@@ -88,6 +88,21 @@ suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下�
     changetype: add
     objectClass: organizationalUnit
     ou: Profiles
+    
+    dn: ou=Conig,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Config
+    
+    dn: ou=Autologin,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Autologin
+    
+    dn: ou=Gateway,ou=Config,dc=example,dc=com
+    changetype: add
+    objectClass: organizationalUnit
+    ou: Gateway
 
 ### LISMのインストール
 githubのpackages/LISM-4.x.x-x.x86_64.tar.gzを展開して、インストールスクリプト(install.sh)を実行して下さい。  
