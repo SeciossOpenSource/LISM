@@ -474,22 +474,55 @@ sub _searchLdap
 sub _searchLism
 {
     my $self = shift;
-    my ($lismopts, $filters, $base, $entryStr) = @_;
+    my ($lismopts, $cache, $filters, $base, $entryStr) = @_;
+    my $conf = $self->{_config};
     my $scope = 2;
     my $attr;
     my @values = ();
+    my %attrmap;
 
     if ($entryStr) {
         if ($base) {
             my ($tmpbase) = ($entryStr =~ /$base/i);
-            if ($lismopts->{base}) {
-                $base = $tmpbase.','.$lismopts->{base};
-            } else {
-                $base = $tmpbase;
+            if ($tmpbase) {
+                if ($lismopts->{base}) {
+                    $base = $tmpbase.','.$lismopts->{base};
+                } else {
+                    $base = $tmpbase;
+                }
             }
         }
     }
     $base = $lismopts->{base} if !$base;
+
+    if (defined($lismopts->{attrmap}) && $conf->{attrmap} && defined($conf->{attrmap}->{$lismopts->{attrmap}})) {
+        my $map = $conf->{attrmap}->{$lismopts->{attrmap}};
+        my $map_dn = lc("$map->{dn},$base");
+        my $map_key = $lismopts->{attrmap}.'_'.$map_dn;
+        if (!defined(${$cache}{lism_attrmap})) {
+            ${$cache}{lism_attrmap} = {};
+        }
+        if (defined(${${$cache}{lism_attrmap}}{$map_key})) {
+            %attrmap = %{${${$cache}{lism_attrmap}}{$map_key}};
+        } else {
+            my ($rc, $map_entry) = $self->{lism}->search($map_dn, 0, 0, 0, 0, '(objectClass=*)', 0, $map->{attr}, 'objectClass');
+            if ($rc) {
+                $self->log(level => 'err', message => "Searching attrmap $map_dn failed($rc)");
+            } elsif ($map_entry) {
+                foreach my $value (($map_entry =~ /^$map->{attr}: (.+)$/gmi)) {
+                    if ($value !~ /^ *$/) {
+                        my @elts = split(/=/, $value);
+                        $attrmap{lc($elts[0])} = $elts[1];
+                    }
+                }
+                if (%attrmap) {
+                    ${${$cache}{lism_attrmap}}{$map_key} = \%attrmap;
+                } else {
+                    ${${$cache}{lism_attrmap}}{$map_key} = {};
+                }
+            }
+        }
+    }
 
     if ($entryStr) {
         if ($filters =~ /\%d/) {
@@ -515,6 +548,11 @@ sub _searchLism
     } else {
         $attr = $lismopts->{attr};
     }
+    if (%attrmap) {
+        if (defined($attrmap{lc($attr)})) {
+            $attr = $attrmap{lc($attr)};
+        }
+    }
 
     foreach my $filter (split(/; +/, $filters)) {
         $filter =~ s/^["']//;
@@ -537,6 +575,12 @@ sub _searchLism
             $filter =~ s/^\(&\(dn=[^\)]+\)//;
             $filter =~ s/\)$//;
             $filter =~ s/\\\\29/\\)/;
+        }
+        if (%attrmap) {
+            foreach my $attr1 (keys(%attrmap)) {
+                my $attr2 = $attrmap{$attr1};
+                $filter =~ s/\($attr1=/($attr2=/gi;
+            }
         }
 
         my $operation;
@@ -572,12 +616,16 @@ sub _searchLism
                 } elsif ($lismopts->{attr} eq 'parentdn') {
                     @tmpvals = ($entryStr =~ /^[^,]+,(.+),$base\n/i);
                 } else {
-                    @tmpvals = ($entryStr =~ /^$lismopts->{attr}: (.*)$/gmi);
+                    @tmpvals = ($entryStr =~ /^$attr: (.*)$/gmi);
                     if (defined($lismopts->{attrs}) && defined($lismopts->{allvalues})) {
                         foreach my $tmpattr (@{$lismopts->{attrs}}) {
                             my @tmpattrvals = ($entryStr =~ /^$tmpattr: (.*)$/gmi);
                             if (@tmpattrvals) {
-                                push(@tmpvals, @tmpattrvals);
+                                if (@tmpvals && defined($tmpvals[0]) && $tmpvals[0] !~ /^ *$/) {
+                                    push(@tmpvals, @tmpattrvals);
+                               } else {
+                                    @tmpvals = @tmpattrvals;
+                               }
                             }
                         }
                     }

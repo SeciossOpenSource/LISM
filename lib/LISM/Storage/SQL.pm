@@ -7,6 +7,7 @@ use LISM::Constant;
 use DBI;
 use MIME::Base64;
 use Encode;
+use POSIX qw(SIGALRM sigaction);
 use Data::Dumper;
 
 our $rawattrs = '^(jpegphoto|photo|.*;binary)$';
@@ -107,7 +108,6 @@ sub hashPasswd
     my $self = shift;
     my ($passwd, $salt) =@_;
     my $conf = $self->{_config};
-    my $hashpw;
 
     my ($htype, $otype) = split(/:/, $conf->{hash});
 
@@ -119,9 +119,10 @@ sub hashPasswd
             return $passwd;
         }
 
-        my $sth = $self->{db}->prepare("select password(\'$passwd\');");
-        if (!$sth || !$sth->execute) {
-            $self->log(level => 'err', message => "MySQL PASSWORD(\'$passwd\') failed: ".$sth->errstr);
+        my $sql = "select password(\'$passwd\');";
+        my ($r, $sth) = $self->_sendQuery($sql);
+        if ($r) {
+            $self->log(level => 'err', message => "MySQL PASSWORD(\'$passwd\') failed: ".$sth);
             return $passwd;
         }
         my @data = $sth->fetchrow_array;
@@ -194,6 +195,18 @@ sub _checkConfig
     $rc = $self->SUPER::_checkConfig();
     if ($rc) {
         return $rc;
+    }
+
+    if (defined($conf->{decrypt}) && defined($conf->{passwd})) {
+        my $decrypt = $conf->{decrypt}[0];
+        my $value = $conf->{passwd}[0];
+        $decrypt =~ s/\%s/$value/;
+        $value = $self->_doFunction($decrypt);
+        if (!defined($value)) {
+            $self->log(level => 'err', message => "Decrypt of passwd failed");
+            return 1;
+        }
+        $conf->{passwd}[0] = $value;
     }
 
     foreach my $oname (keys %{$conf->{object}}) {
@@ -334,9 +347,9 @@ sub _objSearch
 
         # encode value
         $sql = encode($conf->{mbcode}[0], $sql);
-        my $sth = $self->{db}->prepare($sql);
-        if (!$sth || !$sth->execute) {
-            $self->log(level => 'err', message => "Searching by \"$sql\" failed: ".$sth->errstr);
+        my ($r, $sth) = $self->_sendQuery($sql);
+        if ($r) {
+            $self->log(level => 'err', message => "Searching by \"$sql\" failed: ".$sth);
             $rc = LDAP_OPERATIONS_ERROR;
             @match_entries = ();
             last DO;
@@ -503,6 +516,7 @@ sub _objModify
             my @values;
             my $sql;
             my $sth;
+            my $r;
 
             while (@list > 0 && $list[0] ne "ADD" && $list[0] ne "DELETE" && $list[0] ne "REPLACE") {
                 push(@values, shift @list);
@@ -566,9 +580,9 @@ sub _objModify
                     # multibyte value
                     $sql = encode($conf->{mbcode}[0], $sql);
 
-                    $sth = $self->{db}->prepare($sql);
-                    if (!$sth || !$sth->execute) {
-                        $self->log(level => 'err', message => "Adding values by \"$sql\" failed: ".$sth->errstr);
+                    ($r, $sth) = $self->_sendQuery($sql);
+                    if ($r) {
+                        $self->log(level => 'err', message => "Adding values by \"$sql\" failed: ".$sth);
                         $rc = LDAP_OPERATIONS_ERROR;
                         last DO;
                     }
@@ -611,9 +625,9 @@ sub _objModify
                     # multibyte value
                     $sql = encode($conf->{mbcode}[0], $sql);
 
-                    $sth = $self->{db}->prepare($sql);
-                    if (!$sth || !$sth->execute) {
-                        $self->log(level => 'err', message => "Deleting values by \"$sql\" failed: ".$sth->errstr);
+                    ($r, $sth) = $self->_sendQuery($sql);
+                    if ($r) {
+                        $self->log(level => 'err', message => "Deleting values by \"$sql\" failed: ".$sth);
                         $rc = LDAP_OPERATIONS_ERROR;
                         last DO;
                     }
@@ -650,9 +664,9 @@ sub _objModify
                     # multibyte value
                     $sql = encode($conf->{mbcode}[0], $sql);
 
-                    $sth = $self->{db}->prepare($sql);
-                    if (!$sth || !$sth->execute) {
-                        $self->log(level => 'err', message => "Replacing values by \"$sql\" failed: ".$sth->errstr);
+                    ($r, $sth) = $self->_sendQuery($sql);
+                    if ($r) {
+                        $self->log(level => 'err', message => "Replacing values by \"$sql\" failed: ".$sth);
                         $rc = LDAP_OPERATIONS_ERROR;
                         last DO;
                     }
@@ -760,6 +774,7 @@ sub _objAdd
         my %attrs;
         my $sql;
         my $sth;
+        my $r;
 
         if (defined($oconf->{id}[0]->{sequence})) {
             push(@cols, $oconf->{id}[0]->{column}[0]);
@@ -806,7 +821,7 @@ sub _objAdd
         }
 
         # get the storage-specific information
-        my @si_values = (); 
+        my @si_values = ();
         foreach my $strginfo (@{$oconf->{strginfo}}) {
             my $value = $self->_getStaticValue($strginfo, $dn, $entryStr);
             push(@si_values, $value);
@@ -826,9 +841,9 @@ sub _objAdd
             # multibyte value
             $sql = encode($conf->{mbcode}[0], $sql);
 
-            $sth = $self->{db}->prepare("$sql");
-            if (!$sth || !$sth->execute) {
-                $self->log(level => 'err', message => "Adding entry by \"$sql\" failed: ".$sth->errstr);
+            ($r, $sth) = $self->_sendQuery($sql);
+            if ($r) {
+                $self->log(level => 'err', message => "Adding entry by \"$sql\" failed: ".$sth);
                 $rc = LDAP_OPERATIONS_ERROR;
                 last DO;
             }
@@ -869,9 +884,9 @@ sub _objAdd
                 # multibyte value
                 $sql = encode($conf->{mbcode}[0], $sql);
 
-                $sth = $self->{db}->prepare("$sql");
-                if (!$sth || !$sth->execute) {
-                    $self->log(level => 'err', message => "Adding storage-specific information by \"$sql\" failed: ".$sth->errstr);
+                ($r, $sth) = $self->_sendQuery($sql);
+                if ($r) {
+                    $self->log(level => 'err', message => "Adding storage-specific information by \"$sql\" failed: ".$sth);
                     $rc = LDAP_OPERATIONS_ERROR;
                     last DO;
                 }
@@ -897,9 +912,9 @@ sub _objAdd
             $sql =~ s/\%o/$key/g;
             $sql = $self->_containerParse($sql, @{$pkeys});
             $sql = $self->_funcParse($sql, $dn, $entryStr);
-            $sth = $self->{db}->prepare("$sql");
-            if (!$sth || !$sth->execute) {
-                $self->log(level => 'err', message => "Adding link of container by \"$sql\" failed: ".$sth->errstr);
+            ($r, $sth) = $self->_sendQuery($sql);
+            if ($r) {
+                $self->log(level => 'err', message => "Adding link of container by \"$sql\" failed: ".$sth);
                 $rc = LDAP_OPERATIONS_ERROR;
                 last DO;
             }
@@ -955,6 +970,7 @@ sub _objDelete
 
         my $sql;
         my $sth;
+        my $r;
 
         if (!defined($oconf->{noop}) || !grep(/^delete$/i, @{$oconf->{noop}})) {
             # delete the values from the attribute's table
@@ -983,9 +999,9 @@ sub _objDelete
                 # multibyte value
                 $sql = encode($conf->{mbcode}[0], $sql);
 
-                $sth = $self->{db}->prepare("$sql");
-                if (!$sth || !$sth->execute) {
-                    $self->log(level => 'err', message => "Deleting storage-specific information by \"$sql\" failed: ".$sth->errstr);
+                $sth = $self->_sendQuery($sql);
+                if ($r) {
+                    $self->log(level => 'err', message => "Deleting storage-specific information by \"$sql\" failed: ".$sth);
                     $rc = LDAP_OPERATIONS_ERROR;
                     last DO;
                 }
@@ -1001,9 +1017,9 @@ sub _objDelete
                 $sql =~ s/\%o/$key/g;
                 $sql = $self->_containerParse($sql, @{$pkeys});
                 $sql = $self->_funcParse($sql, $dn);
-                $sth = $self->{db}->prepare("$sql");
-                if (!$sth || !$sth->execute) {
-                    $self->log(level => 'err', message => "Deleting link of container by \"$sql\" failed: ".$sth->errstr);
+                ($r, $sth) = $self->_sendQuery($sql);
+                if ($r) {
+                    $self->log(level => 'err', message => "Deleting link of container by \"$sql\" failed: ".$sth);
                     $rc = LDAP_OPERATIONS_ERROR;
                     last DO;
                 }
@@ -1013,9 +1029,9 @@ sub _objDelete
             my $idquote = !defined($oconf->{id}[0]->{type}) || $oconf->{id}[0]->{type}[0] !~ /^(int|smallint|float|number|text|boolean)$/i ? "'" : '';
             # delete the appropriate record from the object's table
             $sql = "delete from $oconf->{table}[0] where $oconf->{id}[0]->{column}[0] = $idquote$key$idquote";
-            $sth = $self->{db}->prepare($sql);
-            if (!$sth || !$sth->execute) {
-                $self->log(level => 'err', message => "Deleting entry by \"$sql\" failed: ".$sth->errstr);
+            ($r, $sth) = $self->_sendQuery($sql);
+            if ($r) {
+                $self->log(level => 'err', message => "Deleting entry by \"$sql\" failed: ".$sth);
                 $rc = LDAP_OPERATIONS_ERROR;
                 last DO;
             }
@@ -1057,6 +1073,7 @@ sub _objMove
     my $newpkey = $self->_getPid($newpkeys);
     my $sql;
     my $sth;
+    my $r;
     my $rc = LDAP_SUCCESS;
 
     DO: {
@@ -1094,9 +1111,9 @@ sub _objMove
             $sql =~ s/\%o/$key/g;
             $sql = $self->_containerParse($sql, @{$newpkeys});
             $sql = $self->_funcParse($sql, $newdn, $entry);
-            $sth = $self->{db}->prepare("$sql");
-            if (!$sth || !$sth->execute) {
-                $self->log(level => 'err', message => "Adding link of container by \"$sql\" failed: ".$sth->errstr);
+            ($r, $sth) = $self->_sendQuery($sql);
+            if ($r) {
+                $self->log(level => 'err', message => "Adding link of container by \"$sql\" failed: ".$sth);
                 $rc = LDAP_OPERATIONS_ERROR;
                 last DO;
             }
@@ -1110,9 +1127,9 @@ sub _objMove
             $sql =~ s/\%o/$key/g;
             $sql = $self->_containerParse($sql, @{$pkeys});
             $sql = $self->_funcParse($sql, $dn);
-            $sth = $self->{db}->prepare("$sql");
-            if (!$sth || !$sth->execute) {
-                $self->log(level => 'err', message => "Deleting link of container by \"$sql\" failed: ".$sth->errstr);
+            ($r, $sth) = $self->_sendQuery($sql);
+            if ($r) {
+                $self->log(level => 'err', message => "Deleting link of container by \"$sql\" failed: ".$sth);
                 $rc = LDAP_OPERATIONS_ERROR;
                 last DO;
             }
@@ -1173,9 +1190,9 @@ sub _getParentRdn
     }
 
     my $sql = "select $selexpr from $from where $where";
-    my $sth = $self->{db}->prepare($sql);
-    if (!$sth || !$sth->execute) {
-        $self->log(level => 'err', message => "Getting rdn by \"$sql\" failed: ".$sth->errstr);
+    my ($r, $sth) = $self->_sendQuery($sql);
+    if ($r) {
+        $self->log(level => 'err', message => "Getting rdn by \"$sql\" failed: ".$sth);
         return undef;
     }
 
@@ -1270,9 +1287,9 @@ sub _getAttrValues
     }
 
     my $sql = "select $selexpr from $from where $where";
-    my $sth = $self->{db}->prepare($sql);
-    if (!$sth || !$sth->execute) {
-        $self->log(level => 'err', message => "Getting $attr values by \"$sql\" failed: ".$sth->errstr);
+    my ($r, $sth) = $self->_sendQuery($sql);
+    if ($r) {
+        $self->log(level => 'err', message => "Getting $attr values by \"$sql\" failed: ".$sth);
         return undef;
     }
 
@@ -1367,9 +1384,9 @@ sub _addAttrValues
             $sql = encode($conf->{mbcode}[0], $sql);
 
             # add the values to the attribute's table
-	    my $sth = $self->{db}->prepare($sql);
-            if (!$sth || !$sth->execute) {
-                $self->log(level => 'err', message => "Adding values by \"$sql\" failed: ".$sth->errstr);
+            my ($r, $sth) = $self->_sendQuery($sql);
+            if ($r) {
+                $self->log(level => 'err', message => "Adding values by \"$sql\" failed: ".$sth);
                 return -1;
             }
             $sth->finish;
@@ -1446,9 +1463,9 @@ sub _delAttrValues
             $sql = encode($conf->{mbcode}[0], $sql);
 
             # delete the values from the attribute's table
-            my $sth = $self->{db}->prepare($sql);
-            if (!$sth || !$sth->execute) {
-                $self->log(level => 'err', message => "Deleting values by \"$sql\" failed: ".$sth->errstr);
+            my ($r, $sth) = $self->_sendQuery($sql);
+            if ($r) {
+                $self->log(level => 'err', message => "Deleting values by \"$sql\" failed: ".$sth);
                 return -1;
             }
             $sth->finish;
@@ -1598,6 +1615,59 @@ sub _filter2sql
     }
 
     return 1;
+}
+
+sub _sendQuery
+{
+    my $self = shift;
+    my ($sql) = @_;
+    my $conf = $self->{_config};
+
+    my $timeout = defined($conf->{'timeout'}) && $conf->{'timeout'}[0] ? $conf->{'timeout'}[0] : 0;
+
+    my $sth = $self->{db}->prepare($sql);
+    if (!$sth) {
+        return (1, '');
+    }
+
+    my $rc = 0;
+    my $err;
+    if ($timeout) {
+        my $set = POSIX::SigSet->new(SIGALRM);
+        my $act = POSIX::SigAction->new(
+            sub {die "TIMEOUT\n";},
+            $set
+        );
+        my $old = POSIX::SigAction->new;
+        sigaction(SIGALRM, $act, $old);
+        eval {
+            eval {
+                alarm($timeout);
+                if (!$sth->execute) {
+                    $rc = 1;
+                    $err = $sth->errstr;
+                }
+            };
+            alarm(0);
+            die "$@\n" if $@;
+        };
+        sigaction(SIGALRM, $old);
+        if ($@) {
+            $rc = 1;
+            if ($@ =~ /TIMEOUT\n/) {
+                $err = 'Query Timeout.';
+            } else {
+                $err = $@;
+            }
+        }
+    } else {
+        if (!$sth->execute) {
+            $rc = 1;
+            $err = $sth->errstr;
+        }
+    }
+
+    return ($rc, ($rc ? $err : $sth));
 }
 
 =head1 SEE ALSO

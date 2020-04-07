@@ -10,11 +10,6 @@ use Encode;
 use Data::Dumper;
 
 our $PAGESIZE = 10000;
-our $MOVECMD = '/dev/fs/C/Windows/System32/dsmove.exe';
-our $RSH = '/usr/bin/rsh';
-if ($^O eq 'MSWin32') {
-    $RSH = 'rsh';
-}
 
 =head1 NAME
 
@@ -43,47 +38,6 @@ sub search
     push(@control, $page);
 
     return $self->_do_search(\@control, @_);
-}
-
-=pod
-
-=head2 move($dn, $parentdn)
-
-move information in Active Directory.
-
-=cut
-
-sub move
-{
-    my $self = shift;
-    my ($dn, $parentdn) = @_;
-    my $conf = $self->{_config};
-    my $rc = LDAP_SUCCESS;
-
-    # DN mapping
-    foreach my $ldapmap (@{$conf->{ldapmap}}) {
-        if ($ldapmap->{type} =~ /^dn$/i) {
-            if ($dn =~ /^$ldapmap->{local}=/i && (!defined($ldapmap->{dn}) || $dn =~ /$ldapmap->{dn}/i)) {
-                $dn = $self->_rewriteDn($ldapmap, 'request', $dn);
-            }
-        } elsif ($ldapmap->{type} =~ /^attribute$/i) {
-            $dn =~ s/^$ldapmap->{local}=/$ldapmap->{foreign}=/i;
-        }
-    }
-
-    $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
-    $parentdn =~ s/$self->{suffix}$/$conf->{nc}/i;
-
-    my ($result) = `$RSH $conf->{host} -l $conf->{admin} $MOVECMD $dn -newparent $parentdn "< /dev/null | cat" 2>&1`;
-    Encode::from_to($result, 'shiftjis', 'utf8');
-    if ($result =~ /成功/) {
-        $rc = LDAP_SUCCESS;
-    } else {
-        $self->log(level => 'err', message => "Moving $dn failed: $result");
-        $rc = LDAP_OTHER;
-    }
-
-    return $rc;
 }
 
 sub _checkConfig

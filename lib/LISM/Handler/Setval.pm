@@ -56,7 +56,10 @@ sub pre_add
         # Default value
         if (defined($entry->{default})) {
             foreach my $attr (keys %{$entry->{default}}) {
-                if (${$entryStrp}[0] !~ /^$attr:/mi) {
+                if (${$entryStrp}[0] !~ /^$attr: [^ ]+/mi) {
+                    if (${$entryStrp}[0] =~ /^$attr:/mi) {
+                        ${$entryStrp}[0] =~ s/^$attr: .*\n//gmi;
+                    }
                     my @values = $self->_getStaticValue($entry->{default}{$attr}, ${$dnp}, ${$entryStrp}[0]);
                     foreach my $value (@values) {
                         ${$entryStrp}[0] = "${$entryStrp}[0]$attr: $value\n";
@@ -70,9 +73,13 @@ sub pre_add
             foreach my $attr (keys %{$entry->{replace}}) {
                 my @values = $self->_getStaticValue($entry->{replace}{$attr}, ${$dnp}, ${$entryStrp}[0]);
 
-                ${$entryStrp}[0] =~ s/$attr:{1,2} .*\n//gi;
+                ${$entryStrp}[0] =~ s/^$attr:{1,2} .*\n//gmi;
                 foreach my $value (@values) {
                     ${$entryStrp}[0] = "${$entryStrp}[0]$attr: $value\n";
+                }
+
+                if (${$dnp} =~ /^$attr=/) {
+                    ${$dnp} =~ s/^$attr=[^,]+/$attr=$values[0]/i;
                 }
             }
         }
@@ -97,6 +104,106 @@ sub pre_add
                 my @values = $self->_getStaticValue($entry->{delete}{$attr}, ${$dnp}, ${$entryStrp}[0]);
                 foreach my $value (@values) {
                     ${$entryStrp}[0] =~ s/\n$attr:{1,2} $value\n/\n/i;
+                }
+            }
+        }
+    }
+
+    return LDAP_SUCCESS;
+}
+
+=head2 pre_modify($dnp, $listp)
+
+Set value before modify operation is done.
+
+=cut
+
+sub pre_modify
+{
+    my $self = shift;
+    my ($dnp, $listp, $oldentryp, $errorp) = @_;
+    my $conf = $self->{_config};
+    my $dn = ${$dnp};
+    my $oldentry = defined($oldentryp) ? ${$oldentryp} : undef;
+
+    if (!defined($conf->{entry})) {
+        return LDAP_SUCCESS;
+    }
+
+    foreach my $entry (@{$conf->{entry}}) {
+        if (defined($entry->{dn}) && ${$dnp} !~ /$entry->{dn}/i) {
+            next;
+        }
+        if (!defined($entry->{op}) || $entry->{op} ne 'modify') {
+            next;
+        }
+        if (!defined($entry->{replace})) {
+            next;
+        }
+
+        my $entryStr = $oldentry;
+        my @list = @{$listp};
+        while (@list > 0) {
+            my $action = shift @list;
+            my $attr = lc(shift @list);
+            my @values;
+
+            while (@list > 0 && $list[0] ne "ADD" && $list[0] ne "DELETE" && $list[0] ne "REPLACE") {
+                push(@values, shift @list);
+            }
+
+            if ($attr eq 'entrycsn') {
+                last;
+            }
+
+            if ($entryStr) {
+                if ($action eq 'ADD') {
+                    foreach my $value (@values) {
+                        $entryStr .= "$attr: $value\n";
+                    }
+                } elsif ($action eq 'DELETE') {
+                    if (@values && $values[0]) {
+                        foreach my $value (@values) {
+                            $entryStr =~ s/^$attr: $value\n//gmi;
+                        }
+                    } else {
+                        $entryStr =~ s/^$attr: .*\n//gmi;
+                    }
+                } elsif ($action eq 'REPLACE') {
+                    $entryStr =~ s/^$attr: .*\n//gmi;
+                    foreach my $value (@values) {
+                        $entryStr .= "$attr: $value\n";
+                    }
+                }
+            }
+        }
+
+        if (defined($entry->{filter}) && !LISM::Storage->parseFilter($entry->{filterobj}, $entryStr)) {
+            next;
+        }
+
+        # Replace values
+        if (defined($entry->{replace})) {
+            foreach my $attr (keys %{$entry->{replace}}) {
+                for (my $i = 0; $i < @{$listp};) {
+                    my $j = 0;
+                    my $action = ${$listp}[$i + $j++];
+                    my $key = ${$listp}[$i + $j++];
+                    while (defined(${$listp}[$i + $j]) && ${$listp}[$i + $j] ne "ADD" && ${$listp}[$i + $j] ne "DELETE" && ${$listp}[$i + $j] ne "REPLACE") {
+                        $j++;
+                    }
+                    if ($key =~ /^$attr$/i) {
+                        splice(@{$listp}, $i, $j);
+                        last;
+                    } else {
+                        $i += $j;
+                    }
+                }
+                my @values = $self->_getStaticValue($entry->{replace}{$attr}, ${$dnp}, $entryStr);
+                push(@{$listp}, 'REPLACE', $attr, @values);
+
+                if (${$dnp} =~ /^$attr=/) {
+                    ${$dnp} =~ s/^$attr=[^,]+/$attr=$values[0]/i;
                 }
             }
         }

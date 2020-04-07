@@ -38,10 +38,10 @@ Do script before modify operation is done.
 sub pre_modify
 {
     my $self = shift;
-    my ($dnp, $listp, $errorp) = @_;
+    my ($dnp, $listp, $oldentryp, $errorp) = @_;
     my $conf = $self->{_config};
 
-    return $self->_do_modify('pre', $dnp, $listp, $errorp);
+    return $self->_do_modify('pre', $dnp, $listp, $oldentryp, $errorp);
 }
 
 =head2 post_modify($dnp, $listp)
@@ -143,6 +143,10 @@ sub _checkConfig
             $self->log(level => 'alert', message => "script handler type is invalid value");
              return 1;
         }
+        if (defined($rule->{filter})) {
+            $rule->{filter} =~ s/&amp;/&/g;
+            $rule->{filterobj} = Net::LDAP::Filter->new(encode('utf8', $rule->{filter}));
+        }
     }
 
     return 0;
@@ -177,6 +181,7 @@ sub _do_modify
             next;
         }
 
+        my $entryStr = $oldentry;
         my $match = 0;
         my @info;
         my @list = @{$listp};
@@ -191,6 +196,27 @@ sub _do_modify
 
             if ($attr eq 'entrycsn') {
                 last;
+            }
+
+            if ($entryStr) {
+                if ($action eq 'ADD') {
+                    foreach my $value (@values) {
+                        $entryStr .= "$attr: $value\n";
+                    }
+                } elsif ($action eq 'DELETE') {
+                    if (@values && $values[0]) {
+                        foreach my $value (@values) {
+                            $entryStr =~ s/^$attr: $value\n//gmi;
+                        }
+                    } else {
+                        $entryStr =~ s/^$attr: .*\n//gmi;
+                    }
+                } elsif ($action eq 'REPLACE') {
+                    $entryStr =~ s/^$attr: .*\n//gmi;
+                    foreach my $value (@values) {
+                        $entryStr .= "$attr: $value\n";
+                    }
+                }
             }
 
             if (defined($rule->{match}) && !$match) {
@@ -220,6 +246,11 @@ sub _do_modify
             push(@info, "$action:$attr=".join('+', @values));
         }
 
+        # check the filter
+        if ($entryStr && defined($rule->{filter}) && !LISM::Storage->parseFilter($rule->{filterobj}, $entryStr)) {
+            next;
+        }
+
         # check the rule
         if (defined($rule->{match}) && !$match) {
             next;
@@ -229,7 +260,7 @@ sub _do_modify
         foreach my $script (@{$rule->{op}{modify}->{script}}) {
             my $cmd = $script;
             my $oldinfo = "dn=$dn#".$self->_parseEntry($oldentry, $rule);
-            my %params = ('%r' => $rdn_val, '%i' => $modinfo, '%o' => $oldinfo);
+            my %params = ('%r' => $rdn_val, '%i' => $modinfo, '%o' => $oldinfo, '%b' => $self->{lism}->{bind}->{edn});
             $cmd = $self->_parseCommand($cmd, %params);
 
             if ($cmd =~ /^#/) {
@@ -255,7 +286,7 @@ sub _do_modify
                     push(@messages, 'Timeout');
                 }
 
-                $cmd =~ s/(userpassword|plainpassword)=[^#]+/$1=/gi;
+                $cmd =~ s/(userpassword|plainpassword|unicodepwd)=[^#]+/$1=/gi;
                 if ($rc) {
                     $self->log(level => 'err', message => "Script in modify failed($rc): $cmd");
                     $self->log(level => 'err', message => "Script messages: ".join(', ', @messages));
@@ -309,6 +340,11 @@ sub _do_add
             next;
         }
 
+        # check the filter
+        if (defined($rule->{filter}) && !LISM::Storage->parseFilter($rule->{filterobj}, $entryStr)) {
+            next;
+        }
+
         # check the rule
         if (defined($rule->{match}) && $entryStr !~ /$rule->{match}/i) {
             next;
@@ -317,7 +353,7 @@ sub _do_add
         my $addinfo = "dn=$dn#".$self->_parseEntry($entryStr, $rule);
         foreach my $script (@{$rule->{op}{add}->{script}}) {
             my $cmd = $script;
-            my %params = ('%r' => $rdn_val, '%i' => $addinfo);
+            my %params = ('%r' => $rdn_val, '%i' => $addinfo, '%b' => $self->{lism}->{bind}->{edn});
             $cmd = $self->_parseCommand($cmd, %params);
 
             if ($cmd =~ /^#/) {
@@ -343,6 +379,7 @@ sub _do_add
                     push(@messages, 'Timeout');
                 }
 
+                $cmd =~ s/(userpassword|plainpassword|unicodepwd)=[^#]+/$1=/gi;
                 if ($rc) {
                     $self->log(level => 'err', message => "Script in add failed($rc): $cmd");
                     $self->log(level => 'err', message => "Script messages: ".join(', ', @messages));
@@ -394,6 +431,11 @@ sub _do_delete
             next;
         }
 
+        # check the filter
+        if ($oldentry && defined($rule->{filter}) && !LISM::Storage->parseFilter($rule->{filterobj}, $oldentry)) {
+            next;
+        }
+
         foreach my $op (keys %{$rule->{op}}) {
             if ($op ne 'delete') {
                 next;
@@ -402,7 +444,7 @@ sub _do_delete
             foreach my $script (@{$rule->{op}{$op}->{script}}) {
                 my $cmd = $script;
                 my $oldinfo = "dn=$dn#".$self->_parseEntry($oldentry, $rule);
-                my %params = ('%r' => $rdn_val, '%i' => $info, '%o' => $oldinfo);
+                my %params = ('%r' => $rdn_val, '%i' => $info, '%o' => $oldinfo, '%b' => $self->{lism}->{bind}->{edn});
                 $cmd = $self->_parseCommand($cmd, %params);
 
                 if ($cmd =~ /^#/) {

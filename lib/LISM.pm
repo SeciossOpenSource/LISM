@@ -241,7 +241,7 @@ sub _bind
             my @entries = ();
             ($rc, @entries) = $self->_do_search($dn, 0, 0, 1, $timeout, $filterStr, 0);
             if (!$rc && @entries) {
-                $self->{bind}{dn} = $self->_replMasterDn(($entries[0] =~ /^dn: (.*)\n/)[0]);
+                $self->{bind}{dn} = $self->_replMasterDn($dn);
                 $self->{bind}{entryStr} = $self->_replMasterDn($entries[0]);
                 if ($ip) {
                     $self->{bind}{ip} = $ip;
@@ -442,7 +442,17 @@ sub _modify
         push(@list, @pwd_mod_list);
     }
 
-    $dn =~ tr/A-Z/a-z/;
+    my $case_exact = 0;
+    my $dname = $self->_getDataName($dn);
+    if ($dname) {
+        my $dconf = $self->{data}{$dname}->{conf};
+        if (defined($dconf->{caseexact})) {
+            $case_exact = 1;
+        }
+    }
+    if (!$case_exact) {
+        $dn =~ tr/A-Z/a-z/;
+    }
     $dn =~ s/,\s+/,/g;
 
     if ($dn eq $self->{_config}{basedn}) {
@@ -450,7 +460,7 @@ sub _modify
         return LDAP_UNWILLING_TO_PERFORM;
     }
 
-    if (!$self->_accessAllowed($dn, 'modify')) {
+    if (!$self->_accessAllowed($dn, 'modify', @list)) {
         return LDAP_INSUFFICIENT_ACCESS;
     }
 
@@ -517,7 +527,18 @@ sub _add
     $entryStr = decode('utf8', $entryStr);
 
     $entryStr =~ s/^dn:.*\n//;
-    $dn =~ tr/A-Z/a-z/;
+
+    my $case_exact = 0;
+    my $dname = $self->_getDataName($dn);
+    if ($dname) {
+        my $dconf = $self->{data}{$dname}->{conf};
+        if (defined($dconf->{caseexact})) {
+            $case_exact = 1;
+        }
+    }
+    if (!$case_exact) {
+        $dn =~ tr/A-Z/a-z/;
+    }
     $dn =~ s/,\s+/,/g;
 
     # decode base64
@@ -535,7 +556,7 @@ sub _add
         return LDAP_ALREADY_EXISTS;
     }
 
-    if (!$self->_accessAllowed($dn, 'add')) {
+    if (!$self->_accessAllowed($dn, 'add', $entryStr)) {
         return LDAP_INSUFFICIENT_ACCESS;
     }
 
@@ -564,7 +585,17 @@ sub modrdn
     $dn = decode('utf8', $dn);
     $newrdn = decode('utf8', $newrdn);
 
-    $dn =~ tr/A-Z/a-z/;
+    my $case_exact = 0;
+    my $dname = $self->_getDataName($dn);
+    if ($dname) {
+        my $dconf = $self->{data}{$dname}->{conf};
+        if (defined($dconf->{caseexact})) {
+            $case_exact = 1;
+        }
+    }
+    if (!$case_exact) {
+        $dn =~ tr/A-Z/a-z/;
+    }
     $dn =~ s/,\s+/,/g;
 
     if ($dn eq $self->{_config}{basedn}) {
@@ -612,7 +643,17 @@ sub _delete
     # decode dn
     $dn = decode('utf8', $dn);
 
-    $dn =~ tr/A-Z/a-z/;
+    my $case_exact = 0;
+    my $dname = $self->_getDataName($dn);
+    if ($dname) {
+        my $dconf = $self->{data}{$dname}->{conf};
+        if (defined($dconf->{caseexact})) {
+            $case_exact = 1;
+        }
+    }
+    if (!$case_exact) {
+        $dn =~ tr/A-Z/a-z/;
+    }
     $dn =~ s/,\s+/,/g;
 
     if ($dn eq $self->{_config}{basedn}) {
@@ -683,6 +724,12 @@ sub auditlog
 
     if ($^O ne 'MSWin32') {
         openlog('LISM', 'pid', $conf->{auditfacility});
+        if (length($message) > 40960) {
+            $message = substr($message, 0, 40960);
+            if ($message =~ /seciossmember:=/i) {
+                $message =~ s/[^;]+$/uid=...,ou=People,/;
+            }
+        }
         syslog('info', $message);
         closelog();
 
@@ -892,6 +939,15 @@ sub _lismConfig
         # retcode
         if (defined($dconf->{retcode}) && defined($dconf->{retcode}[0]->{result})) {
              $dconf->{retcode}[0]->{result} =~ s/\\n/\n/gmi;
+        }
+
+        # dynamic handler
+        if (defined($dconf->{dynhandler})) {
+            my $dynhandler = $dconf->{dynhandler}[0];
+            if (!defined($dynhandler->{match}) || !defined($dynhandler->{dn}) || !defined($dynhandler->{attr})) {
+                $self->log(level => 'alert', message => "match, dn or attr doesn't exist in dynhandler");
+                return 1;
+            }
         }
     }
 
@@ -1208,8 +1264,7 @@ sub _initData
             $dconf->{handler}{$hname}->{logrotatenum} = $conf->{logrotatenum};
         }
 
-        $self->{_handler}{$dname}{$hname}->config($dconf->{handler}{$hname})
-;
+        $self->{_handler}{$dname}{$hname}->config($dconf->{handler}{$hname});
         $self->{_handler}{$dname}{$hname}->init();
     }
 
@@ -1319,7 +1374,7 @@ sub _unlock
 sub _accessAllowed
 {
     my $self = shift;
-    my ($dn, $op) = @_;
+    my ($dn, $op, @info) = @_;
     my $rc = 0;
 
     CHECK: {
@@ -1355,12 +1410,16 @@ sub _accessAllowed
                     if (defined($right->{type})) {
                         my $type = $right->{type}[0];
                         if ($type eq '*') {
-                            $rc = 1;
-                            last CHECK;
-                        } elsif ($type eq 'self') {
-                            if ($self->{bind}{dn} =~ /^$dn$/i) {
+                            if ($self->_attrAllowed($right, $op, @info)) {
                                 $rc = 1;
                                 last CHECK;
+                            }
+                        } elsif ($type eq 'self') {
+                            if ($self->{bind}{dn} =~ /^$dn$/i) {
+                                if ($self->_attrAllowed($right, $op, @info)) {
+                                    $rc = 1;
+                                    last CHECK;
+                                }
                             }
                         }
                     }
@@ -1373,8 +1432,10 @@ sub _accessAllowed
                                 $tmpdn =~ s/%$num/$matches[$i]/;
                             }
                             if ($self->{bind}{dn} =~ /$tmpdn/i) {
-                                $rc = 1;
-                                last CHECK;
+                                if ($self->_attrAllowed($right, $op, @info)) {
+                                    $rc = 1;
+                                    last CHECK;
+                                }
                             }
                         }
                     }
@@ -1392,8 +1453,10 @@ sub _accessAllowed
                         }
 
                         if (LISM::Storage->parseFilter($filter, $self->{bind}{entryStr})) {
-                            $rc = 1;
-                            last CHECK;
+                            if ($self->_attrAllowed($right, $op, @info)) {
+                                $rc = 1;
+                                last CHECK;
+                            }
                         }
                     }
                 }
@@ -1404,6 +1467,49 @@ sub _accessAllowed
     }
 
     return $rc;
+}
+
+sub _attrAllowed
+{
+    my $self = shift;
+    my ($right, $op, @info) = @_;
+
+    if (defined($right->{attr}) && ($op eq 'add' || $op eq 'modify')) {
+        foreach my $attr (keys(%{$right->{attr}})) {
+            my $regexp = $right->{attr}{$attr}->{content};
+            my @values;
+            if ($op eq 'add') {
+                @values = ($info[0] =~ /^$attr: (.*)$/gmi);
+            } elsif ($op eq 'modify') {
+                my $match = 0;
+                my $i = 0;
+                while ($i < @info) {
+                    $i++;
+                    my $key    = $info[$i++];
+                    if ($key =~ /^$attr$/i) {
+                        $match = 1;
+                    }
+                    while ($i < @info && $info[$i] ne "ADD" && $info[$i] ne "DELETE" && $info[$i] ne "REPLACE") {
+                        my $value = $info[$i++];
+                        if ($match) {
+                            push(@values, $value);
+                        }
+                    }
+                    if ($match) {
+                        last;
+                    }
+                }
+            }
+
+            foreach my $value (@values) {
+                if ($value !~ /$regexp/i) {
+                    return 0;
+                }
+            }
+        }
+    }
+
+    return 1;
 }
 
 sub _replMasterDn
@@ -1610,7 +1716,7 @@ sub _doUpdate
     if (!$rc) {
         # replicate the udpate operation to the storages
         if ($self->_checkSync($dname) && $commit) {
-            ($rc, @updated) = $self->_doSync($func, $src_data, $dn, @info);
+            ($rc, @updated) = $self->_doSync($func, $src_data, $dn, \@info, \$oldentry);
         } else {
             $self->log(level => 'debug', message => "$func: \"$dn\n".join("\n", @info)."\"");
             ($rc, $error) = $self->$method($dname, $dn, @info);
@@ -1644,7 +1750,7 @@ sub _doUpdate
         $rc = LDAP_OTHER;
     }
 
-    if (!$self->_checkSync($dname) || $commit) {
+    if ((!$self->_checkSync($dname) || $commit) && !defined($dconf->{noaudit})) {
         $self->{error} = $error;
         $self->auditlog($func, $dn, $rc, $error, @info);
         if (defined($self->{_config}->{updatelog}) && !$rc && $dname ne 'Task') {
@@ -1673,6 +1779,7 @@ sub _do_modify
     my $storage = $self->_getStorage($dname);
     if (defined($storage)) {
         my @mod_list;
+        my $parentdn;
 
         while ( @list > 0) {
             my $action = shift @list;
@@ -1692,11 +1799,10 @@ sub _do_modify
                 if ($action eq "REPLACE" && @values && $values[0]) {
                     my $tmpval = $values[0];
                     $tmpval =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
-                    if ($dn =~ /^[^,]+,$tmpval$/i) {
-                        return LDAP_SUCCESS;
-                    } else {
-                        return $storage->move($dn, $values[0]);
+                    if ($dn !~ /^[^,]+,$tmpval$/i) {
+                        $parentdn = $values[0];
                     }
+                    next;
                 } else {
                     return LDAP_UNWILLING_TO_PERFORM;
                 }
@@ -1715,7 +1821,13 @@ sub _do_modify
             push(@mod_list, ($action, $key, @values));
         }
 
-        if (@mod_list) {
+        if ($parentdn) {
+            ($rc, $error) = $storage->move($dn, $parentdn);
+            if (!$rc) {
+                $dn =~ s/^([^,]+),.+$/$1,$parentdn/;
+            }
+        }
+        if (!$rc && @mod_list) {
             ($rc, $error) = $storage->modify($dn, @mod_list);
         }
     } else {
@@ -1824,6 +1936,12 @@ sub _doHandler
 {
     my $self = shift;
     my ($type, $func, $dname, @args) = @_;
+    my $dconf = $self->{data}{$dname}->{conf};
+    my $hselect;
+    if ($type =~ /^([^_]+)_(.+)$/) {
+        $type = $1;
+        $hselect = $2;
+    }
     my $method = $type.'_'.$func;
     my $timeout = $self->{_config}->{timeout};
     my $dn;
@@ -1831,11 +1949,11 @@ sub _doHandler
     my (@orders) = ('first', 'middle', 'last');
     my $update = ($func =~ /^(add|modify|delete)$/);
 
-    if ($self->{operation} eq 'sync' || $update) {
+    if ((defined($self->{operation}) && $self->{operation} eq 'sync') || $update) {
         push(@orders, 'sync');
     }
 
-    if (!defined($self->{_handler}{$dname})) {
+    if (!defined($self->{_handler}{$dname}) && !defined($dconf->{dynhandler})) {
         return 0;
     }
 
@@ -1853,9 +1971,121 @@ sub _doHandler
             }
         }
     }
+  DO: {
+    if (defined($self->{_handler}{$dname}) && defined($self->{_handler}{$dname}{Rewrite}) && $type eq 'pre' && $func ne 'search' && !$hselect) {
+        my $hname = 'Rewrite';
+        if ($func =~ /^(modify|delete)$/ &&
+            $self->{_handler}{$dname}{$hname}->useprevious() && !defined(${$args[2]})) {
+            ($rc, ${$args[2]}) = $self->_do_search(${$args[0]}, 0, 0, 1, $timeout, '(objectClass=*)', 0);
+            if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
+                $self->log(level => 'err', message => "Saving ${$args[0]} for handler failed($rc)");
+                last DO;
+            }
+        }
+
+        $rc = $self->{_handler}{$dname}{$hname}->$method(@args, 'prepare');
+        if ($rc) {
+            last DO;
+        }
+    }
+
+    my $dynhandler;
+    if (defined($dconf->{dynhandler})) {
+        $dynhandler = $dconf->{dynhandler}[0];
+    }
+
+    if ($dynhandler && $type ne 'unlock' && $func ne 'search' && $dn =~ /$dynhandler->{match}/i && !$hselect) {
+        my %dynhandler;
+        if (defined($self->{bind}{dynhandler})) {
+            %dynhandler = %{$self->{bind}{dynhandler}};
+        } else {
+            my $handlerdn = $dynhandler->{dn};
+            my $handlerfilter = $dynhandler->{filter};
+
+            my @matches = ($dn =~ /$dynhandler->{match}/i);
+            for (my $i = 0; $i < @matches; $i++) {
+                my $num = $i + 1;
+                $handlerdn =~ s/\%$num/$matches[$i]/g;
+                $handlerfilter =~ s/\%$num/$matches[$i]/g;
+            }
+
+            my ($rc, $handlerEntry) = $self->_do_search($handlerdn, 2, 0, 0, $self->{_config}->{timeout}, $handlerfilter, 0);
+            if (!$rc || $rc == LDAP_NO_SUCH_OBJECT) {
+                if ($handlerEntry) {
+                    my ($xml) = ($handlerEntry =~ /^seciossConfigSerializedData: (.+)$/mi);
+                    $xml = decode_base64($xml);
+                    my $dynconf = XMLin($xml, ForceArray => 1);
+                    foreach my $hname (keys %{$dynconf->{data}{$dname}->{handler}}) {
+                        if (!defined($dynhandler{$dname})) {
+                            $dynhandler{$dname} = {};
+                        }
+                        my $module = "LISM::Handler::$hname";
+                        if (!defined($self->{_handler}{$dname}{$hname})) {
+                            eval "require $module;";
+                            if ($@) {
+                                $self->log(level => 'err', message => "require $module: $@");
+                                $rc = LDAP_OTHER;
+                                last DO;
+                            }
+                        }
+                        eval "\$dynhandler{$dname}{$hname} = new $module(\$self)";
+                        if ($@) {
+                            $self->log(level => 'err', message => "Can't create $module: $@");
+                            $rc = LDAP_OTHER;
+                            last DO;
+                        }
+
+                        $dynhandler{$dname}{$hname}->{sysloglevel} = $self->{_config}->{sysloglevel};
+                        $dynhandler{$dname}{$hname}->config($dynconf->{data}{$dname}->{handler}{$hname});
+                        $dynhandler{$dname}{$hname}->init();
+                    }
+                    $self->{bind}{dynhandler} = \%dynhandler;
+                } else {
+                    $self->{bind}{dynhandler} = {};
+                }
+            } else {
+                $self->log(level => 'err', message => "Getting dnyamic handler($handlerdn $handlerfilter) failed($rc)");
+                last DO;
+            }
+        }
+
+        if (%dynhandler) {
+            foreach my $order (@orders) {
+                foreach my $hname (keys %{$dynhandler{$dname}}) {
+                    if ($dynhandler{$dname}{$hname}->getOrder() ne $order) {
+                         next;
+                    }
+
+                    if ($func =~ /^(modify|delete)$/ &&
+                        $dynhandler{$dname}{$hname}->useprevious() && !defined(${$args[2]})) {
+                        ($rc, ${$args[2]}) = $self->_do_search(${$args[0]}, 0, 0, 1, $timeout, '(objectClass=*)', 0);
+                        if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
+                            $self->log(level => 'err', message => "Saving ${$args[0]} for handler failed($rc)");
+                            last;
+                        }
+                    }
+
+                    $rc = $dynhandler{$dname}{$hname}->$method(@args);
+                    if ($rc) {
+                        last;
+                    }
+                }
+                if ($rc) {
+                    last DO;
+                }
+            }
+        }
+    }
+
+    if (!defined($self->{_handler}{$dname})) {
+        return 0;
+    }
 
     foreach my $order (@orders) {
         foreach my $hname (keys %{$self->{_handler}{$dname}}) {
+            if ($hselect && $hselect ne $hname) {
+                next;
+            }
             if ($self->{_handler}{$dname}{$hname}->getOrder() ne $order) {
                 next;
             }
@@ -1894,7 +2124,7 @@ sub _doHandler
             last;
         }
     }
-
+  }
     if ($func ne 'search') {
         ${$args[0]} = $self->_replMasterDn(${$args[0]}, $dn);
         if ($func eq 'add') {
@@ -2124,7 +2354,8 @@ sub _checkSync
 sub _doSync
 {
     my $self = shift;
-    my ($func, $src_data, $dn, @info) = @_;
+    my ($func, $src_data, $dn, $infop, $oldentryp) = @_;
+    my @info = @{$infop};
     my $conf = $self->{_lism};
     my $master = $self->{data}{$lism_master};
     my $cluster = $self->{cluster};
@@ -2141,16 +2372,22 @@ sub _doSync
     if ($func eq 'add') {
         $entryStr = $info[0];
     } else {
-        # check entry existence
-        my @entries;
-        ($rc, @entries) = $self->_do_search($dn, 0, 0, 0, $timeout, '(objectClass=*)');
-        if ($rc) {
-            $self->log(level => 'err', message => "Getting synchronized entry($dn) failed: error code($rc)");
-            return($rc, @updated);
-        } elsif (!@entries) {
-            return LDAP_NO_SUCH_OBJECT;
+        if ($oldentryp && ${$oldentryp}) {
+            $entryStr = ${$oldentryp};
+            my $current_suffix = $self->{data}{$self->{master}->{current}}->{suffix};
+            $entryStr =~ s/$current_suffix$/$master->{suffix}/gmi;
+        } else {
+            # check entry existence
+            my @entries;
+            ($rc, @entries) = $self->_do_search($dn, 0, 0, 0, $timeout, '(objectClass=*)');
+            if ($rc) {
+                $self->log(level => 'err', message => "Getting synchronized entry($dn) failed: error code($rc)");
+                return($rc, @updated);
+            } elsif (!@entries) {
+                return LDAP_NO_SUCH_OBJECT;
+            }
+            ($entryStr = $entries[0]) =~ s/^dn:.*\n//;
         }
-        ($entryStr = $entries[0]) =~ s/^dn:.*\n//;
     }
 
     # update the master storage
@@ -2178,8 +2415,38 @@ sub _doSync
         my ($ddn, @dinfo) = $self->_checkSyncData($dname, 'realtime', $entryStr, $dfunc, $dn, @info);
         if ($dname ne 'Task' && $dfunc eq 'modify') {
             if (!$newEntryStr) {
-                ($rc, $newEntryStr) = $self->_do_search($dn, 0, 0, 0, $timeout, '(objectClass=*)');
-                $newEntryStr =~ s/^dn:.*\n//;
+                $newEntryStr = $entryStr;
+                my @list = @info;
+                while (@list > 0) {
+                    my $action = shift @list;
+                    my $attr = shift @list;
+                    my @values;
+                    while (@list > 0 && $list[0] !~ /^(ADD|DELETE|REPLACE)$/) {
+                        push(@values, shift @list);
+                    }
+                    if ($action eq 'ADD') {
+                        foreach my $value (@values) {
+                            if ($value !~ /^ *$/) {
+                                $newEntryStr .= "$attr: $value\n";
+                            }
+                        }
+                    } elsif ($action eq 'DELETE') {
+                        if (@values && $values[0]) {
+                            foreach my $value (@values) {
+                                $newEntryStr =~ s/^$attr: $value\n//gmi;
+                            }
+                        } else {
+                            $newEntryStr =~ s/^$attr: .*\n//gmi;
+                        }
+                    } elsif ($action eq 'REPLACE') {
+                        $newEntryStr =~ s/^$attr: .*\n//gmi;
+                        foreach my $value (@values) {
+                            if ($value !~ /^ *$/) {
+                                $newEntryStr .= "$attr: $value\n";
+                            }
+                        }
+                    }
+                }
             }
             if ($newEntryStr) {
                 my ($newdn, @newinfo) = $self->_checkSyncData($dname, 'realtime', $newEntryStr, $dfunc, $dn, @info);
@@ -2415,7 +2682,9 @@ sub _getSyncInfo
                     my $dregexbase;
                     my $sbase;
 
-                    if ($syncdn eq '*') {
+                    if ($syncdn eq 'ou=disable') {
+                        next;
+                    } elsif ($syncdn eq '*') {
                         $dbase = $data->{suffix};
                         $dregexbase = $dbase;
                         $sbase = $master->{suffix};
@@ -2447,7 +2716,7 @@ sub _getSyncInfo
 
                     # synchronized attributes
                     my @sync_attrs;
-                    if (defined($sobject->{syncattrs})) {
+                    if (defined($sobject->{syncattrs}) && !defined($sobject->{idmap})) {
                         @sync_attrs = @{$sobject->{syncattrs}};
                     }
 
@@ -2464,48 +2733,73 @@ sub _getSyncInfo
                         my $syncflag = 1;
                         my ($dn) = ($entries[$i] =~ /^dn: (.*)\n/);
                         $dn =~ tr/A-Z/a-z/;
-                        if ($dcheckbase && $sobject->{dnignore}[0] ne 'on' && $dn !~ /$dcheckbase$/i) {
-                            next;
-                        }
-
-                        my ($subdn) = ($dn =~ /^(.*),$dbase$/i);
-                        if (!$subdn) {
-                            next;
-                        }
-
                         my ($key) = ($dn =~ /^(.*?)(?<!\\),/);
+                        my $subdn;
+
+                        if (defined($sobject->{idmap})) {
+                            my ($idval) = ($entries[$i] =~ /^$sobject->{idmap}[0]->{foreign}: (.+)$/mi);
+                            $key = "$sobject->{idmap}[0]->{local}=".lc($idval);
+                            if (defined($present_list->{$sbase}{list}{$key})) {
+                                ($subdn) = keys %{$present_list->{$sbase}{list}{$key}};
+                            }
+                        } else {
+                            if ($dcheckbase && $sobject->{dnignore}[0] ne 'on' && $dn !~ /$dcheckbase$/i) {
+                                next;
+                            }
+
+                            ($subdn) = ($dn =~ /^(.*),$dbase$/i);
+                            if (!$subdn) {
+                                next;
+                            }
+                        }
 
                         # check need for synchronization
                         my %attrmap;
+                        my %memberattrmap;
+                        my @syncdns;
                         if (defined($sobject->{syncflag})) {
                             my $checkEntry;
-                            if (defined($sobject->{syncflag}[0]->{attrmap})) {
+                            if (defined($sobject->{syncflag}[0]->{attrmap}) || defined($sobject->{syncflag}[0]->{memberattrmap})) {
                                 $checkEntry = $entries[$i];
                             } else {
                                 $checkEntry = defined($present_list->{$sbase}{list}{$key}) && defined($present_list->{$sbase}{list}{$key}->{$subdn}) ? $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr} : '';
                             }
-                            if (!$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $checkEntry, \%syncflag_cache, \%attrmap)) {
+                            if (!$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $checkEntry, \%syncflag_cache, \%attrmap, \%memberattrmap, \@syncdns)) {
                                 $syncflag = 0;
-                            } elsif (defined($sobject->{syncflag}[0]->{attrmap})) {
-                                my ($rdn_attr, $rdn_val, $entry_base) = ($dn =~ /^([^=]+)=([^,]+),(.+)$/);
-                                if (grep(/^$rdn_attr$/i, values(%attrmap))) {
-                                    $entry_base =~ s/$dbase/$sbase/i;
-                                    my $mrdn_attr;
-                                    foreach my $attr (keys(%attrmap)) {
-                                        if ($attrmap{$attr} =~ /^$rdn_attr$/i) {
-                                            $mrdn_attr = $attr;
+                            } else {
+                                if (@syncdns) {
+                                    my $match = 0;
+                                    foreach my $checkdn (@syncdns) {
+                                        if ($dn =~ /$checkdn/i) {
+                                            $match = 1;
                                             last;
                                         }
                                     }
-                                    my $entryStr;
-                                    ($rc, $entryStr) = $self->_do_search($entry_base, 2, 0, 1, $timeout, "($rdn_attr=$rdn_val)", 0, $mrdn_attr);
-                                    if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
-                                        $self->log(level => 'err', message => "Can't get master entry of $dn($rc)");
-                                        return ($rc, ());
-                                    } elsif ($entryStr) {
-                                        my ($mrdn_val) = ($entryStr =~ /^$mrdn_attr: (.*)$/mi);
-                                        $key = "$mrdn_attr=$mrdn_val";
-                                        $subdn =~ s/^[^,]+,/$key,/;
+                                    if (!$match) {
+                                        next;
+                                    }
+                                }
+                                if (defined($sobject->{syncflag}[0]->{attrmap})) {
+                                    my ($rdn_attr, $rdn_val, $entry_base) = ($dn =~ /^([^=]+)=([^,]+),(.+)$/);
+                                    if (grep(/^$rdn_attr$/i, values(%attrmap))) {
+                                        $entry_base =~ s/$dbase/$sbase/i;
+                                        my $mrdn_attr;
+                                        foreach my $attr (keys(%attrmap)) {
+                                            if ($attrmap{$attr} =~ /^$rdn_attr$/i) {
+                                                $mrdn_attr = $attr;
+                                                last;
+                                            }
+                                        }
+                                        my $entryStr;
+                                        ($rc, $entryStr) = $self->_do_search($entry_base, 2, 0, 1, $timeout, "($rdn_attr=$rdn_val)", 0, $mrdn_attr);
+                                        if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
+                                            $self->log(level => 'err', message => "Can't get master entry of $dn($rc)");
+                                            return ($rc, ());
+                                        } elsif ($entryStr) {
+                                            my ($mrdn_val) = ($entryStr =~ /^$mrdn_attr: (.*)$/mi);
+                                            $key = "$mrdn_attr=$mrdn_val";
+                                            $subdn =~ s/^[^,]+,/$key,/;
+                                        }
                                     }
                                 }
                             }
@@ -2546,6 +2840,54 @@ sub _getSyncInfo
                         } elsif ($srcdn) {
                             $nosync_data{$dname} = 1;
                             $nosync_entries{'sync'}{$dn} = "The entry shoud move to \"$subdn,$dbase\" in cluster";
+                        } elsif (defined($sobject->{idmap})) {
+                            $mentry->{entryStr} =~ s/$master->{suffix}$/$data->{suffix}/gmi;
+                            if (defined($sobject->{syncattrs})) {
+                                my $entryStr = '';
+                                foreach my $attr ($sobject->{idmap}[0]->{local}, @{$sobject->{syncattrs}}) {
+                                    if ($attr =~ /^userpassword$/i) {
+                                        next;
+                                    }
+                                    my @vals = ($mentry->{entryStr} =~ /^$attr: (.*)$/gmi);
+                                    if (@vals) {
+                                        foreach my $val (@vals) {
+                                            if ($val !~ /^ *$/) {
+                                                $entryStr .= "$attr: $val\n";
+                                            }
+                                        }
+                                    }
+                                }
+                                $mentry->{entryStr} = $entryStr;
+                            }
+                            my @dinfo = ($mentry->{entryStr});
+                            my $oldentry;
+                            my $error;
+                            $rc = $self->_doHandler('pre_Rewrite', 'add', $dname, \$dn, \@dinfo, \$oldentry, \$error);
+                            if ($rc) {
+                                $self->log(level => 'err', message => "Handler to $key,$dbase failed($rc): $error");
+                                next;
+                            }
+                            $mentry->{entryStr} = $dinfo[0];
+                            @sync_attrs = $self->_unique(($mentry->{entryStr} =~ /^([^:]+):/gmi));
+                            for (my $j = 0; $j < @sync_attrs; $j++) {
+                                my $attr = $sync_attrs[$j];
+                                if ($attr =~ /^(objectClass|userpassword|unicodepwd|customAttribute)$/i) {
+                                    next;
+                                }
+
+                                my $pvals = join(";", sort {lc $a cmp lc $b} $self->_getAttrValues($mentry->{entryStr}, $attr));
+                                my $dvals = join(";", sort {lc $a cmp lc $b} $self->_getAttrValues($entries[$i], $attr));
+                                my $evals = $pvals;
+                                $pvals =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                if ($dvals !~ /^$pvals$/i && $ops{modify}) {
+                                    if ($nosync_entries{'sync'}{$dn}) {
+                                        $nosync_entries{'sync'}{$dn} .= ", attr=\'$attr\' expect=\'$evals\' current=\'$dvals\'";
+                                    } else {
+                                        $nosync_data{$dname} = 1;
+                                        $nosync_entries{'sync'}{$dn} = "The value is inconsistent in cluster: attr=\'$attr\' expect=\'$evals\' current=\'$dvals\'";
+                                    }
+                                }
+                            }
                         } else {
                             if (!defined($sobject->{syncattrs})) {
                                 @sync_attrs = $self->_unique(($mentry->{entryStr} =~ /^([^:]+):/gmi), ($entries[$i] =~ /\n([^:]+):/gi));
@@ -2556,10 +2898,6 @@ sub _getSyncInfo
                                 my $sync_attr = $attr;
                                 my $sattr;
                                 my @values;
-
-                                if (grep(/^$attr$/i, values(%attrmap))) {
-                                    next;
-                                }
 
                                 if (defined($attrmap{lc($attr)})) {
                                     $attr = $attrmap{lc($attr)};
@@ -2586,7 +2924,7 @@ sub _getSyncInfo
                                     next
                                 }
 
-                                my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, @values);
+                                my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
                                 my $pvals = join(";", sort {lc $a cmp lc $b} @sync_vals);
 
                                 @values = $self->_getAttrValues($entries[$i], $sync_attr);
@@ -2621,9 +2959,10 @@ sub _getSyncInfo
 
                     # check added entry in present list
                     if ($ops{add} && $entrynum < $sync_size) {
+                        my @syncdns;
                         foreach my $key (keys %{$present_list->{$sbase}{list}}) {
                             foreach my $subdn (keys %{$present_list->{$sbase}{list}{$key}}) {
-                                if (defined($sobject->{syncflag}) && !$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr}, \%syncflag_cache)) {
+                                if (defined($sobject->{syncflag}) && !$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr}, \%syncflag_cache, undef, undef, \@syncdns)) {
                                     next;
                                 }
 
@@ -2645,6 +2984,20 @@ sub _getSyncInfo
                                 } else {
                                     $nosync_entry = "$subdn,$dbase";
                                 }
+
+                                if (@syncdns) {
+                                    my $match = 0;
+                                    foreach my $checkdn (@syncdns) {
+                                        if ($nosync_entry =~ /$checkdn/i) {
+                                            $match = 1;
+                                            last;
+                                        }
+                                    }
+                                    if (!$match) {
+                                        next;
+                                    }
+                                }
+
                                 $nosync_entry =~ tr/A-Z/a-z/;
                                 $nosync_entries{'sync'}{$nosync_entry} = "The entry doesn't exist in cluster";
                                 $entrynum++;
@@ -2692,7 +3045,9 @@ sub _getSyncInfo
                     my $dregexbase;
                     my $sbase;
 
-                    if ($masterdn eq '*') {
+                    if ($masterdn eq 'ou=disable') {
+                        next;
+                    } elsif ($masterdn eq '*') {
                         $dbase = $data->{suffix};
                         $dregexbase = $dbase;
                         $sbase = $master->{suffix};
@@ -2779,23 +3134,17 @@ sub _getSyncInfo
                         my $dstdn;
                         if (defined($present_list->{$sbase}{list}{$key})) {
                             if (defined($present_list->{$sbase}{list}{$key}->{$subdn})) {
-                                if (!defined($masterfilter) ||
-                                    LISM::Storage->parseFilter($masterfilter, $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr})) {
-                                    $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
-                                }
+                                $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
                             } else {
                                 my @subdns = keys %{$present_list->{$sbase}{list}{$key}};
                                 for (my $j = 0; $j < @subdns; $j++) {
                                     if ((defined($sobject->{unique}) && $subdns[$j] =~ /,$sobject->{unique}[0]->{base}$/i) ||
                                         $sobject->{dnignore}[0] eq 'on') {
-                                        if (!defined($masterfilter) ||
-                                            LISM::Storage->parseFilter($masterfilter, $present_list->{$sbase}{list}{$key}->{$subdns[$j]}->{entryStr})) {
-                                            if (defined($sobject->{unique})) {
-                                                $dstdn = $subdn;
-                                            }
-                                            $subdn = $subdns[$j];
-                                            $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
+                                        if (defined($sobject->{unique})) {
+                                            $dstdn = $subdn;
                                         }
+                                        $subdn = $subdns[$j];
+                                        $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
                                     }
                                 }
                             }
@@ -2838,7 +3187,7 @@ sub _getSyncInfo
                                     next
                                 }
 
-                                my @sync_vals = $self->_checkSyncAttrs($data, $master, $sattr, @values);
+                                my @sync_vals = $self->_checkSyncAttrs($data, $master, $sattr, undef, @values);
                                 my $dvals = join(";", sort {lc $a cmp lc $b} @sync_vals);
 
                                 @values = $self->_getAttrValues($mentry->{entryStr}, $attr);
@@ -3074,7 +3423,9 @@ sub _setSyncInfo
                     my $sbase;
                     my @delete_list;
 
-                    if ($syncdn eq '*') {
+                    if ($syncdn eq 'ou=disable') {
+                        next;
+                    } elsif ($syncdn eq '*') {
                         $dbase = $data->{suffix};
                         $dregexbase = $dbase;
                         $sbase = $master->{suffix};
@@ -3121,7 +3472,7 @@ sub _setSyncInfo
 
                     # synchronized attributes
                     my @sync_attrs;
-                    if (defined($sobject->{syncattrs})) {
+                    if (defined($sobject->{syncattrs}) && !defined($sobject->{idmap})) {
                         @sync_attrs = @{$sobject->{syncattrs}};
                     }
 
@@ -3146,47 +3497,72 @@ sub _setSyncInfo
                         my $syncflag = 1;
                         my ($dn) = ($entries[$i] =~ /^dn: (.*)\n/);
                         $dn =~ tr/A-Z/a-z/;
-                        if ($dcheckbase && $sobject->{dnignore}[0] ne 'on' && $dn !~ /$dcheckbase_regex$/i) {
-                            next;
-                        }
-
-                        my ($subdn) = ($dn =~ /^(.*),$dbase$/i);
-                        if (!$subdn) {
-                            next;
-                        }
-
                         my ($key) = ($dn =~ /^(.*?)(?<!\\),/);
+                        my $subdn;
+
+                        if (defined($sobject->{idmap})) {
+                            my ($idval) = ($entries[$i] =~ /^$sobject->{idmap}[0]->{foreign}: (.+)$/mi);
+                            $key = "$sobject->{idmap}[0]->{local}=".lc($idval);
+                            if (defined($present_list->{$sbase}{list}{$key})) {
+                                ($subdn) = keys %{$present_list->{$sbase}{list}{$key}};
+                            }
+                        } else {
+                            if ($dcheckbase && $sobject->{dnignore}[0] ne 'on' && $dn !~ /$dcheckbase_regex$/i) {
+                                next;
+                            }
+
+                            ($subdn) = ($dn =~ /^(.*),$dbase$/i);
+                            if (!$subdn) {
+                                next;
+                            }
+                        }
 
                         my %attrmap;
+                        my %memberattrmap;
+                        my @syncdns;
                         if (defined($sobject->{syncflag})) {
                             my $checkEntry;
-                            if (defined($sobject->{syncflag}[0]->{attrmap})) {
+                            if (defined($sobject->{syncflag}[0]->{attrmap}) || defined($sobject->{syncflag}[0]->{memberattrmap})) {
                                 $checkEntry = $entries[$i];
                             } else {
                                 $checkEntry = defined($present_list->{$sbase}{list}{$key}) && defined($present_list->{$sbase}{list}{$key}->{$subdn}) ? $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr} : '';
                             }
-                            if (!$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $checkEntry, \%syncflag_cache, \%attrmap)) {
+                            if (!$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $checkEntry, \%syncflag_cache, \%attrmap, \%memberattrmap, \@syncdns)) {
                                 $syncflag = 0;
-                            } elsif (defined($sobject->{syncflag}[0]->{attrmap})) {
-                                my ($rdn_attr, $rdn_val, $entry_base) = ($dn =~ /^([^=]+)=([^,]+),(.+)$/);
-                                if (grep(/^$rdn_attr$/i, values(%attrmap))) {
-                                    $entry_base =~ s/$dbase/$sbase/i;
-                                    my $mrdn_attr;
-                                    foreach my $attr (keys(%attrmap)) {
-                                        if ($attrmap{$attr} =~ /^$rdn_attr$/i) {
-                                            $mrdn_attr = $attr;
+                            } else {
+                                if (@syncdns) {
+                                    my $match = 0;
+                                    foreach my $checkdn (@syncdns) {
+                                        if ($dn =~ /$checkdn/i) {
+                                            $match = 1;
                                             last;
                                         }
                                     }
-                                    my $entryStr;
-                                    ($rc, $entryStr) = $self->_do_search($entry_base, 2, 0, 1, $timeout, "($rdn_attr=$rdn_val)", 0, $mrdn_attr);
-                                    if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
-                                        $self->log(level => 'err', message => "Can't get master entry of $dn($rc)");
-                                        return ($rc, ());
-                                    } elsif ($entryStr) {
-                                        my ($mrdn_val) = ($entryStr =~ /^$mrdn_attr: (.*)$/mi);
-                                        $key = "$mrdn_attr=$mrdn_val";
-                                        $subdn =~ s/^[^,]+,/$key,/;
+                                    if (!$match) {
+                                        next;
+                                    }
+                                }
+                                if (defined($sobject->{syncflag}[0]->{attrmap})) {
+                                    my ($rdn_attr, $rdn_val, $entry_base) = ($dn =~ /^([^=]+)=([^,]+),(.+)$/);
+                                    if (grep(/^$rdn_attr$/i, values(%attrmap))) {
+                                        $entry_base =~ s/$dbase/$sbase/i;
+                                        my $mrdn_attr;
+                                        foreach my $attr (keys(%attrmap)) {
+                                            if ($attrmap{$attr} =~ /^$rdn_attr$/i) {
+                                                $mrdn_attr = $attr;
+                                                last;
+                                            }
+                                        }
+                                        my $entryStr;
+                                        ($rc, $entryStr) = $self->_do_search($entry_base, 2, 0, 1, $timeout, "($rdn_attr=$rdn_val)", 0, $mrdn_attr);
+                                        if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
+                                            $self->log(level => 'err', message => "Can't get master entry of $dn($rc)");
+                                            return ($rc, ());
+                                        } elsif ($entryStr) {
+                                            my ($mrdn_val) = ($entryStr =~ /^$mrdn_attr: (.*)$/mi);
+                                            $key = "$mrdn_attr=$mrdn_val";
+                                            $subdn =~ s/^[^,]+,/$key,/;
+                                        }
                                     }
                                 }
                             }
@@ -3236,6 +3612,75 @@ sub _setSyncInfo
                                     push(@{$delete_list[$level]}, [$dn, $entries[$i]]);
                                 }
                             }
+                        } elsif (defined($sobject->{idmap})) {
+                            my @modlist;
+                            $mentry->{entryStr} =~ s/$master->{suffix}$/$data->{suffix}/gmi;
+                            if (defined($sobject->{syncattrs})) {
+                                my $entryStr = '';
+                                foreach my $attr ($sobject->{idmap}[0]->{local}, @{$sobject->{syncattrs}}) {
+                                    if ($attr =~ /^userpassword$/i) {
+                                        next;
+                                    }
+                                    push(@modlist, 'REPLACE', $attr);
+                                    my @vals = ($mentry->{entryStr} =~ /^$attr: (.*)$/gmi);
+                                    if (@vals) {
+                                        foreach my $val (@vals) {
+                                            if ($val !~ /^ *$/) {
+                                                $entryStr .= "$attr: $val\n";
+                                                push(@modlist, $val);
+                                            }
+                                        }
+                                    }
+                                }
+                                $mentry->{entryStr} = $entryStr;
+                            } else {
+                                foreach my $attr ($self->_unique(($mentry->{entryStr} =~ /^([^:]+):/gmi))) {
+                                    push(@modlist, 'REPLACE', $attr);
+                                    my @vals = ($mentry->{entryStr} =~ /^$attr: (.*)$/gmi);
+                                    if (@vals) {
+                                        foreach my $val (@vals) {
+                                            if ($val !~ /^ *$/) {
+                                                push(@modlist, $val);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            my @dinfo = ($mentry->{entryStr});
+                            my $oldentry;
+                            my $error;
+                            $rc = $self->_doHandler('pre_Rewrite', 'add', $dname, \$dn, \@dinfo, \$oldentry, \$error);
+                            if ($rc) {
+                                $self->log(level => 'err', message => "Handler to $key,$dbase failed($rc): $error");
+                                next;
+                                next;
+                            }
+                            $mentry->{entryStr} = $dinfo[0];
+                            @sync_attrs = $self->_unique(($mentry->{entryStr} =~ /^([^:]+):/gmi));
+                            for (my $j = 0; $j < @sync_attrs; $j++) {
+                                my $attr = $sync_attrs[$j];
+                                if ($attr =~ /^(objectClass|userpassword|unicodepwd|customAttribute)$/i) {
+                                    next;
+                                }
+
+                                my $pvals = join(";", sort {lc $a cmp lc $b} $self->_getAttrValues($mentry->{entryStr}, $attr));
+                                my $dvals = join(";", sort {lc $a cmp lc $b} $self->_getAttrValues($entries[$i], $attr));
+                                my $evals = $pvals;
+                                $pvals =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                if ($dvals !~ /^$pvals$/i && $ops{modify}) {
+                                    if ($ops{modify}) {
+                                        $rc = $self->_doUpdate('modify', undef, 1, $entries[$i], $dn, @modlist);
+                                        $update_info{sync}->{$dname}->{$oname}{mod_total}++;
+                                        if ($rc) {
+                                            $self->_writeSyncFail('modify', $dname, $dn, @modlist);
+                                            $update_info{sync}->{$dname}->{$oname}{skip}++;
+                                        } else {
+                                            $update_info{sync}->{$dname}->{$oname}{mod_success}++;
+                                        }
+                                    }
+                                    last;
+                                }
+                            }
                         } else {
                             if ($srcdn) {
                                 my $newpdn = "$subdn,$dbase";
@@ -3260,10 +3705,6 @@ sub _setSyncInfo
                                 my $sync_attr = $attr;
                                 my $sattr;
                                 my @values;
-
-                                if (grep(/^$attr$/i, values(%attrmap))) {
-                                    next;
-                                }
 
                                 if (defined($attrmap{lc($attr)})) {
                                     $attr = $attrmap{lc($attr)};
@@ -3290,7 +3731,7 @@ sub _setSyncInfo
                                     next
                                 }
 
-                                my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, @values);
+                                my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
                                 my $pvals = join(";", sort {lc $a cmp lc $b} @sync_vals);
 
                                 @values = $self->_getAttrValues($entries[$i], $sync_attr);
@@ -3336,6 +3777,7 @@ sub _setSyncInfo
                             if (!$continueFlag) {
                                 last DO;
                             }
+                            $rc = LDAP_SUCCESS;
                         }
 
                         if ($ops{add} && defined($present_list->{$sbase}{list}{$key}) &&
@@ -3371,10 +3813,12 @@ sub _setSyncInfo
                     if ($ops{add}) {
                         my @non_present_list;
                         my %attrmap;
+                        my %memberattrmap;
+                        my @syncdns;
 
                         foreach my $key (keys %{$present_list->{$sbase}{list}}) {
                             foreach my $subdn (keys %{$present_list->{$sbase}{list}{$key}}) {
-                                if (defined($sobject->{syncflag}) && !$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr}, \%syncflag_cache, \%attrmap)) {
+                                if (defined($sobject->{syncflag}) && !$self->_checkSyncFlag($sobject->{syncflag}[0], "$subdn,$master->{suffix}", $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr}, \%syncflag_cache, \%attrmap, \%memberattrmap, \@syncdns)) {
                                     next;
                                 }
 
@@ -3408,6 +3852,8 @@ sub _setSyncInfo
 
                                 if (!defined($sobject->{syncattrs})) {
                                     @sync_attrs = $self->_unique(($mentry->{entryStr} =~ /^([^:]+):/gmi));
+                                } elsif (defined($sobject->{idmap}) && !@sync_attrs) {
+                                    @sync_attrs = @{$sobject->{syncattrs}};
                                 }
 
                                 for (my $j = 0; $j < @sync_attrs; $j++) {
@@ -3416,10 +3862,6 @@ sub _setSyncInfo
                                     my $sattr;
 
                                     if ($attr =~ /^$rdn_attr$/i) {
-                                        next;
-                                    }
-
-                                    if (grep(/^$attr$/i, values(%attrmap))) {
                                         next;
                                     }
 
@@ -3444,7 +3886,7 @@ sub _setSyncInfo
                                     }
 
                                     my @values = $self->_getAttrValues($mentry->{entryStr}, $attr);
-                                    my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, @values);
+                                    my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
                                     if (@sync_vals) {
                                         # ignore passowrd equality if hash type is differnt
                                         if ($sync_attr =~ /^userpassword$/i) {
@@ -3467,6 +3909,19 @@ sub _setSyncInfo
                                     }
                                 } else {
                                     $nosync_entry = "$subdn,$dbase";
+                                }
+
+                                if (@syncdns) {
+                                    my $match = 0;
+                                    foreach my $checkdn (@syncdns) {
+                                        if ($nosync_entry =~ /$checkdn/i) {
+                                            $match = 1;
+                                            last;
+                                        }
+                                    }
+                                    if (!$match) {
+                                        next;
+                                    }
                                 }
 
                                 $rc = $self->_doUpdate('add', undef, 1, undef, $nosync_entry, $entryStr);
@@ -3529,6 +3984,7 @@ sub _setSyncInfo
 
             my $data = $self->{data}{$dname};
             my $sdata = $cluster->{$dname}->{conf};
+            my ($sname) = keys %{$data->{conf}->{storage}};
             my $dcheckfilter = $checkfilter;
             my $dcheckbase = $checkbase;
 
@@ -3553,7 +4009,9 @@ sub _setSyncInfo
                     my $dregexbase;
                     my $sbase;
 
-                    if ($masterdn eq '*') {
+                    if ($masterdn eq 'ou=disable') {
+                        next;
+                    } elsif ($masterdn eq '*') {
                         $dbase = $data->{suffix};
                         $dregexbase = $dbase;
                         $sbase = $master->{suffix};
@@ -3582,6 +4040,7 @@ sub _setSyncInfo
                         $masterfilter = $sobject->{masterfilterobj};
                         $ocheckfilter = "(&$ocheckfilter$sobject->{masterfilter}[0])";
                     }
+                    my $ocheckfilterobj = Net::LDAP::Filter->new($ocheckfilter);
 
                     if (defined($sobject->{masterop})) {
                         foreach my $op (@{$sobject->{masterop}}) {
@@ -3620,11 +4079,7 @@ sub _setSyncInfo
                     ($rc, @entries) = $self->_do_search($dcheckbase ? $dcheckbase : $dbase, 2, 0, $sizeLimit, $timeout, $ocheckfilter, 0, , ());
                     if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
                         $self->log(level => 'err', message => "Can't get values of $dname($rc)");
-                        if (!$continueFlag) {
-                            last DO;
-                        } else {
-                            next;
-                        }
+                        last DO;
                     }
                     $update_info{master}->{$dname}->{$oname}{total} += @entries;
 
@@ -3632,6 +4087,12 @@ sub _setSyncInfo
                     for (my $i = 0; $i < @entries; $i++) {
                         if ($dcheckbase && $sobject->{dnignore}[0] ne 'on' && $entries[$i] !~ /^dn: [^\n]*$dcheckbase\n/i) {
                             next;
+                        }
+
+                        if ($sname eq 'CSV') {
+                            if (!LISM::Storage->parseFilter($ocheckfilterobj, $entries[$i])) {
+                                next;
+                            }
                         }
 
                         my ($subdn) = ($entries[$i] =~ /^dn: (.*),$dbase\n/i);
@@ -3651,23 +4112,17 @@ sub _setSyncInfo
                         my $dstdn;
                         if (defined($present_list->{$sbase}{list}{$key})) {
                             if (defined($present_list->{$sbase}{list}{$key}->{$subdn})) {
-                                if (!defined($masterfilter) ||
-                                    LISM::Storage->parseFilter($masterfilter, $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr})) {
-                                    $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
-                                }
+                                $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
                             } else {
                                 my @subdns = keys %{$present_list->{$sbase}{list}{$key}};
                                 for (my $j = 0; $j < @subdns; $j++) {
                                     if ((defined($sobject->{unique}) && $subdns[$j] =~ /,$sobject->{unique}[0]->{base}$/i) ||
                                         $sobject->{dnignore}[0] eq 'on') {
-                                        if (!defined($masterfilter) ||
-                                            LISM::Storage->parseFilter($masterfilter, $present_list->{$sbase}{list}{$key}->{$subdns[$j]}->{entryStr})) {
-                                            if (defined($sobject->{unique})) {
-                                                $dstdn = $subdn;
-                                            }
-                                            $subdn = $subdns[$j];
-                                            $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
+                                        if (defined($sobject->{unique})) {
+                                            $dstdn = $subdn;
                                         }
+                                        $subdn = $subdns[$j];
+                                        $mentry = $present_list->{$sbase}{list}{$key}->{$subdn};
                                     }
                                 }
                             }
@@ -3714,7 +4169,7 @@ sub _setSyncInfo
                                     next;
                                 }
 
-                                my @sync_vals = $self->_checkSyncAttrs($data, $master, $sattr, @values);
+                                my @sync_vals = $self->_checkSyncAttrs($data, $master, $sattr, undef, @values);
 
                                 if (@sync_vals) {
                                     foreach my $value (@sync_vals) {
@@ -3776,11 +4231,33 @@ sub _setSyncInfo
                                     next
                                 }
 
-                                my @sync_vals = $self->_checkSyncAttrs($data, $master, $sattr, @values);
+                                my @sync_vals = $self->_checkSyncAttrs($data, $master, $sattr, undef, @values);
                                 my $dvals = join(";", sort {lc $a cmp lc $b} @sync_vals);
 
-                                @values = $self->_getAttrValues($mentry->{entryStr}, $attr);
-                                my ($synced_vals, $left_vals) = $self->_checkSyncedAttrs($master, $data, $sattr, @values);
+                                my $synced_vals;
+                                my $left_vals;
+                                if ($attr =~ /^customAttribute$/i) {
+                                    $synced_vals = [];
+                                    $left_vals = [];
+                                    my %cattrs;
+                                    foreach my $sync_val (@sync_vals) {
+                                        my ($cattr) = split(/#/, $sync_val);
+                                        $cattrs{$cattr} = 1;
+                                    }
+                                    foreach my $cattr (keys(%cattrs)) {
+                                        my @vals = ($mentry->{entryStr} =~ /^$cattr: (.*)$/gmi);
+                                        if (@vals) {
+                                            foreach my $val (@vals) {
+                                                push(@{$synced_vals}, "$cattr#$val");
+                                            }
+                                        } else {
+                                            push(@{$synced_vals}, "$cattr#");
+                                        }
+                                    }
+                                } else {
+                                    @values = $self->_getAttrValues($mentry->{entryStr}, $attr);
+                                    ($synced_vals, $left_vals) = $self->_checkSyncedAttrs($master, $data, $sattr, @values);
+                                }
                                 my $pvals = join(";", sort {lc $a cmp lc $b} @{$synced_vals});
 
                                 # ignore passowrd equality if hash type is differnt
@@ -3829,6 +4306,7 @@ sub _setSyncInfo
                             if (!$continueFlag) {
                                 last DO;
                             }
+                            $rc = LDAP_SUCCESS;
                         }
 
                         if ($ops{delete}) {
@@ -3938,11 +4416,14 @@ sub _getPresentList
                 if (defined($conf->{sync}[0]->{master}[0]->{filter}) && defined($conf->{sync}[0]->{master}[0]->{filter}{$oname})) {
                     $mfilter = '(&'.$mfilter.$conf->{sync}[0]->{master}[0]->{filter}{$oname}->{content}.')';
                 }
+                $mfilter = "(&(lismControl=undeleted=true)$mfilter)";
                 foreach my $typedn (@{$sobject->{$type}}) {
                     my $sbase;
                     my $regexbase;
 
-                    if ($typedn eq '*') {
+                    if ($typedn eq 'ou=disable') {
+                        next;
+                    } elsif ($typedn eq '*') {
                         $sbase = $master->{suffix};
                         $regexbase = $sbase;
                     } elsif ($typedn =~ /[*+]/) {
@@ -4016,7 +4497,7 @@ sub _syncSumary
 sub _checkSyncFlag
 {
     my $self = shift;
-    my ($syncflag, $dn, $entryStr, $cache, $attrmapp) = @_;
+    my ($syncflag, $dn, $entryStr, $cache, $attrmapp, $memberattrmapp, $syncdnp) = @_;
 
     if ($dn !~ /$syncflag->{match}/i) {
         return 1;
@@ -4034,6 +4515,12 @@ sub _checkSyncFlag
     if ($cache && defined(${$cache}{$key})) {
         if ($attrmapp && defined($syncflag->{attrmap}) && defined(${$cache}{'attrmap_'.$key})) {
             $attrmapp = ${$cache}{'attrmap_'.$key};
+        }
+        if ($memberattrmapp && defined($syncflag->{memberattrmap}) && defined(${$cache}{'memberattrmap_'.$key})) {
+            $memberattrmapp = ${$cache}{'memberattrmap_'.$key};
+        }
+        if ($syncdnp && defined($syncflag->{syncdn}) && defined(${$cache}{'syncdn_'.$key})) {
+            @{$syncdnp} = @{${$cache}{'syncdn_'.$key}};
         }
         if (defined($syncflag->{attr}) && ref(${$cache}{$key}) eq 'ARRAY') {
             if (!$entryStr) {
@@ -4057,6 +4544,12 @@ sub _checkSyncFlag
     if (defined($syncflag->{attrmap})) {
         push(@attrs, $syncflag->{attrmap});
     }
+    if (defined($syncflag->{memberattrmap})) {
+        push(@attrs, $syncflag->{memberattrmap});
+    }
+    if (defined($syncflag->{syncdn})) {
+        push(@attrs, $syncflag->{syncdn});
+    }
     my ($rc, $flagEntry) = $self->_do_search($flagdn, 2, 0, 0, $self->{_config}->{timeout}, $syncflag->{filter}, 0, @attrs);
     if (!$rc) {
         if ($flagEntry) {
@@ -4074,6 +4567,35 @@ sub _checkSyncFlag
                     ${$cache}{'attrmap_'.$key} = \%attrmap;
                 }
                 %{$attrmapp} = %attrmap;
+            }
+            if ($memberattrmapp && defined($syncflag->{memberattrmap})) {
+                my %memberattrmap;
+                my $attr = $syncflag->{memberattrmap};
+                my @values = ($flagEntry =~ /^$attr: (.+)$/gmi);
+                foreach my $value (@values) {
+                    my @elts = split(/=/, $value, 2);
+                    if (@elts == 2) {
+                        $memberattrmap{lc($elts[0])} = $elts[1];
+                    }
+                }
+                if (keys(%memberattrmap)) {
+                    ${$cache}{'memberattrmap_'.$key} = \%memberattrmap;
+                }
+                %{$memberattrmapp} = %memberattrmap;
+            }
+            if ($syncdnp && defined($syncflag->{syncdn})) {
+                my @syncdn;
+                my $attr = $syncflag->{syncdn};
+                my @values = ($flagEntry =~ /^$attr: (.+)$/gmi);
+                foreach my $value (@values) {
+                    if ($value && $value !~ /^ *$/) {
+                        push(@syncdn, $value);
+                    }
+                }
+                if (@syncdn) {
+                    ${$cache}{'syncdn_'.$key} = \@syncdn;
+                }
+                @{$syncdnp} = @syncdn;
             }
             if (defined($syncflag->{attr})) {
                 my @values;
@@ -4172,6 +4694,8 @@ sub _checkSyncData
     my $sbase;
     my $sregexbase;
     my %attrmap;
+    my %memberattrmap;
+    my @syncdns;
     my %ops;
     $ops{add} = 0;
     $ops{modify} = 0;
@@ -4211,7 +4735,7 @@ sub _checkSyncData
             if ($dn =~ /,$sregexbase$/i) {
                 # check need for synchronization
                 if (defined($sdata->{object}{$oname}->{syncflag})) {
-                    if (!$self->_checkSyncFlag($sdata->{object}{$oname}->{syncflag}[0], $dn, $entryStr, undef, \%attrmap)) {
+                    if (!$self->_checkSyncFlag($sdata->{object}{$oname}->{syncflag}[0], $dn, $entryStr, undef, \%attrmap, \%memberattrmap, \@syncdns)) {
                         next;
                     }
                 }
@@ -4225,6 +4749,18 @@ sub _checkSyncData
                 }
                 if ($func eq 'delete' && defined($sdata->{object}{$oname}->{delfilterobj})) {
                     if (!LISM::Storage->parseFilter($sdata->{object}{$oname}->{delfilterobj}, "$dn\n$entryStr")) {
+                        next;
+                    }
+                }
+                if (@syncdns) {
+                    my $match = 0;
+                    foreach my $checkdn (@syncdns) {
+                        if ($dn =~ /$checkdn/i) {
+                            $match = 1;
+                            last;
+                        }
+                    }
+                    if (!$match) {
                         next;
                     }
                 }
@@ -4289,10 +4825,6 @@ sub _checkSyncData
                 next;
             }
 
-            if (grep(/^$attr$/i, values(%attrmap))) {
-                next;
-            }
-
             if (defined($attrmap{lc($attr)})) {
                 $attr = $attrmap{lc($attr)};
             }
@@ -4314,7 +4846,7 @@ sub _checkSyncData
             }
 
             my @values = $info[0] =~ /^$attr: (.*)$/gmi;
-            my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, @values);
+            my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
             if (@sync_vals) {
                 foreach my $value (@sync_vals) {
                     $dinfo[0] = "$dinfo[0]$sync_attr: $value\n";
@@ -4345,7 +4877,7 @@ sub _checkSyncData
                 next;
             }
 
-            if ($attr =~ /^$rdn_attr$/i) {
+            if ($attr =~ /^$rdn_attr$/i && (!defined($sobject->{synctype}) || $sobject->{synctype}[0] eq $type)) {
                 if (@values) {
                     push(@dinfo, $action, $attr, @values);
                 }
@@ -4371,7 +4903,7 @@ sub _checkSyncData
                 }
 
                 if (!$sattr) {
-                    if ($sync_attr =~ /^$rdn_attr$/i) {
+                    if ($sync_attr =~ /^$rdn_attr$/i && (!defined($sobject->{synctype}) || $sobject->{synctype}[0] eq $type)) {
                         if (@values) {
                             push(@dinfo, $action, $sync_attr, @values);
                         }
@@ -4404,7 +4936,7 @@ sub _checkSyncData
                 next;
             }
 
-            my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, @values);
+            my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
             if (@sync_vals) {
                 push(@dinfo, $action, $sync_attr, @sync_vals);
             } elsif (($action eq "REPLACE" || $action eq "DELETE") && !@values) {
@@ -4418,14 +4950,21 @@ sub _checkSyncData
                 return ($ddn);
             }
             return undef;
-        } elsif (defined($sobject->{useprevious}) && $sobject->{useprevious}[0] eq 'on') {
+        } elsif (defined($sobject->{useprevious}) && $sobject->{useprevious}[0] && $sobject->{useprevious} ne 'off') {
             my @sync_attrs;
+            my @useprev_attrs;
+            if ($sobject->{useprevious}[0] ne 'on') {
+                @useprev_attrs = split(/, */, $sobject->{useprevious}[0]);
+            }
             if (defined($sobject->{syncattrs})) {
                 @sync_attrs = @{$sobject->{syncattrs}};
             } else {
                 @sync_attrs = $self->_unique($entryStr =~ /^([^:]+):/gmi);
             }
             for (my $i = 0; $i < @sync_attrs; $i++) {
+                if (@useprev_attrs && !grep(/^$sync_attrs[$i]$/i, @useprev_attrs)) {
+                    next;
+                }
                 if (!grep(/^$sync_attrs[$i]$/i, @updated_attrs)) {
                     my $sattr;
                     if (defined($sobject->{syncattrs})) {
@@ -4434,7 +4973,8 @@ sub _checkSyncData
                             next;
                         }
                     }
-                    my @vals = ($decEntryStr =~ /^$sync_attrs[$i]: +(.+)$/gmi);
+                    my $sync_attr = defined($attrmap{lc($sync_attrs[$i])}) ? $attrmap{lc($sync_attrs[$i])} : $sync_attrs[$i];
+                    my @vals = ($decEntryStr =~ /^$sync_attr: +(.+)$/gmi);
                     if (@vals && defined($vals[0]) && $vals[0] ne '') {
                         my @tmpvals;
                         foreach my $val (@vals) {
@@ -4487,7 +5027,11 @@ sub _checkSyncData
                             push(@tmpvals, $val);
                         }
                         if (@tmpvals) {
-                            push(@dinfo, 'REPLACE', $sync_attrs[$i], @tmpvals);
+                            if (@useprev_attrs) {
+                                unshift(@dinfo, 'REPLACE', $sync_attrs[$i], @tmpvals);
+                            } else {
+                                push(@dinfo, 'REPLACE', $sync_attrs[$i], @tmpvals);
+                            }
                         }
                     }
                 }
@@ -4539,15 +5083,17 @@ sub _checkSyncData
 sub _checkSyncAttrs
 {
     my $self = shift;
-    my ($src_data, $dst_data, $sattr, @values) = @_;
+    my ($src_data, $dst_data, $sattr, $memberattrmapp, @values) = @_;
     my @sync_vals = ();
+    my %memberattrmap = $memberattrmapp ? %{$memberattrmapp} : undef;
 
     foreach my $value (@values) {
         # check attribute synchronization rule
+        my $encval = encode('utf8', $value);
         if ($sattr && defined($sattr->{rule})) {
             my $doSyncAttr = 1;
             foreach my $rule (@{$sattr->{rule}}) {
-                if ($value !~ /^ *$/ && $value !~ /$rule/i) {
+                if ($encval !~ /^ *$/ && $encval !~ /$rule/i) {
                     $doSyncAttr = 0;
                     last;
                 }
@@ -4560,7 +5106,7 @@ sub _checkSyncAttrs
         if ($sattr && defined($sattr->{notrule})) {
             my $doSyncAttr = 1;
             foreach my $notrule (@{$sattr->{notrule}}) {
-                if ($value =~ /$notrule/i) {
+                if ($encval =~ /$notrule/i) {
                     $doSyncAttr = 0;
                     last;
                 }
@@ -4570,7 +5116,43 @@ sub _checkSyncAttrs
             }
         }
 
-        if ($sattr && defined($sattr->{memberfilter})) {
+        if (%memberattrmap && $value =~ /^([^=]+)=([^,]+),/) {
+            my $mrdn_attr = $1;
+            my $mrdn_val = $2;
+            if (grep(/^$mrdn_attr$/i, keys(%memberattrmap))) {
+                my $rdn_attr;
+                foreach my $attr (keys(%memberattrmap)) {
+                    if ($attr =~ /^$mrdn_attr$/i) {
+                        $rdn_attr = $memberattrmap{$attr};
+                        last;
+                    }
+                }
+                my $filter = '(objectClass=*)';
+                if ($sattr && defined($sattr->{memberfilter})) {
+                    foreach my $memberfilter (@{$sattr->{memberfilter}}) {
+                        if (!defined($memberfilter->{dn}) || $value =~ /$memberfilter->{dn}/i) {
+                            if (defined($memberfilter->{filter})) {
+                                $filter = $memberfilter->{filter};
+                            }
+                            last;
+                        }
+                    }
+                }
+                my ($rc, $entryStr) = $self->_do_search($value, 0, 0, 1, 0, $filter, 0, $rdn_attr);
+                if ($rc && $rc != LDAP_NO_SUCH_OBJECT) {
+                    $self->log(level => 'err', message => "Can't get master entry of $value($rc)");
+                } elsif ($entryStr) {
+                    my ($rdn_val) = ($entryStr =~ /^$rdn_attr: (.*)$/mi);
+                    my $regex_val = $mrdn_val;
+                    $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                    $value =~ s/^$mrdn_attr=$regex_val/$mrdn_attr=$rdn_val/;
+                } else {
+                    next;
+                }
+            }
+        }
+
+        if (!%memberattrmap && $sattr && defined($sattr->{memberfilter})) {
             my $match = 0;
             foreach my $memberfilter (@{$sattr->{memberfilter}}) {
                 if (!defined($memberfilter->{dn}) || $value =~ /$memberfilter->{dn}/i) {
@@ -4748,12 +5330,19 @@ sub _hash
     my ($htype, $value, $salt) = @_;
     my $hash;
 
-    if ($htype =~ /^(CRYPT|MD5|SHA)$/i && Encode::is_utf8($value)) {
+    if ($htype =~ /^(CRYPT|MD5|SHA|SSHA)$/i && Encode::is_utf8($value)) {
         $value = encode('utf8', $value);
     }
 
     # hash the value
-    if ($htype =~ /^CRYPT$/i) {
+    if ($htype =~ /^SSHA$/i) {
+        if (!$salt) {
+            $salt = Crypt::CBC->random_bytes(4);
+        }
+        my $ctx = Digest::SHA1->new;
+        $ctx->add($value.$salt);
+        $hash = encode_base64($ctx->digest.$salt);
+    } elsif ($htype =~ /^CRYPT$/i) {
         $hash = crypt($value, $salt);
     } elsif ($htype =~ /^MD5$/i) {
         my $ctx = Digest::MD5->new;
@@ -4907,6 +5496,9 @@ sub _auditMsg
     my ($type, $dn, $result, $error, @info) = @_;
     my $message = '';
     my $maxvallen = 255;
+    if (!$error) {
+        $error = '';
+    }
 
     if ($error eq 'LISM_NO_OPERATION') {
         return $message;
@@ -4930,7 +5522,7 @@ sub _auditMsg
                 my $value = shift @info;
                 if (length($value) <= $maxvallen) {
                     if ($mfmatch && $attr =~ /^(member|seciossMember)$/i) {
-                        $value =~ s/$mfmatch/$mfsubstitute/i;
+                        eval "\$value =~ s/$mfmatch/$mfsubstitute/i";
                     }
                     push(@values, $value);
                 }
@@ -4949,7 +5541,7 @@ sub _auditMsg
             }
 
             my $mod;
-            if ($attr =~ /^(userPassword|randomPassword|plainpassword)$/i) {
+            if ($attr =~ /^(userPassword|randomPassword|plainpassword|unicodePwd)$/i) {
                 $mod = "$attr:$dsn";
             } else {
                 $mod = "$attr:$dsn".join(';', @values);
@@ -4963,7 +5555,7 @@ sub _auditMsg
         }
     } elsif ($type eq 'add') {
         my @list = split("\n", $info[0]);
-        my $prev;
+        my $prev = '';
 
         while (@list > 0) {
             my $elt = shift @list;
@@ -4974,7 +5566,7 @@ sub _auditMsg
             }
 
             my $mod;
-            if ($attr =~ /^(userPassword|plainpassword)$/i || length($value) > $maxvallen) {
+            if ($attr =~ /^(userPassword|plainpassword|unicodePwd)$/i || length($value) > $maxvallen) {
                 $mod = "$attr:+";
             } else {
                 if ($mfmatch && $attr =~ /^(member|seciossMember)$/i) {
@@ -5016,6 +5608,10 @@ sub _auditMsg
         $message = "ip=$self->{bind}{ip} $message";
     } else {
         $message = "ip=127.0.0.1 $message";
+    }
+
+    if (defined($self->{_config}{logrequestid})) {
+        $message = "reqid=".(defined($self->{bind}{reqid}) ? $self->{bind}{reqid} : 0)." $message";
     }
 
     if (defined($self->{_config}->{auditformat})) {

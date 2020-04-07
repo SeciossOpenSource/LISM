@@ -126,7 +126,6 @@ sub pre_search
 
             my %rwcache;
             my $substitution = $rule->{substitution};
-
             $substitution = $self->_rewritePattern($substitution, '%0', "${$basep}\n${$filterStrp}");
             my $str = $self->_rewriteParse($rule->{match}, $substitution, ${$basep}, \%rwcache);
             if (!defined($str)) {
@@ -157,7 +156,9 @@ sub pre_search
             }
         }
     }
-
+    if (Encode::is_utf8(${$filterStrp})) {
+        ${$filterStrp} = encode('utf8', ${$filterStrp});
+    }
     return LDAP_SUCCESS;
 }
 
@@ -232,17 +233,72 @@ Rewrite dn and attributes, values before modify operation is done.
 sub pre_modify
 {
     my $self = shift;
-    my ($dnp, $listp, $oldentryp) = @_;
+    my ($dnp, $listp, $oldentryp, $errorp, $order) = @_;
     my $conf = $self->{_config};
 
     foreach my $rule (@{$conf->{rewrite}}) {
         if ($rule->{context} eq 'request' || $rule->{context} eq 'modifyRequest') {
+            if (defined($rule->{order})) {
+                if (!$order || $rule->{order} ne $order) {
+                    next;
+                }
+            } elsif ($order) {
+                next;
+            }
             if (defined($rule->{dn}) && ${$dnp} !~ /$rule->{dn}/i) {
                 next;
             }
 
+            my $entryStr = $oldentryp ? ${$oldentryp} : '';
+            my $modlist = "${$dnp}\n";
+            my @list = @{$listp};
+            while (@list > 0) {
+                my $action = shift @list;
+                my $attr = shift @list;
+                my @values;
+                while (@list > 0 && $list[0] !~ /^(ADD|DELETE|REPLACE)$/) {
+                    push(@values, shift @list);
+                }
+                if ($entryStr) {
+                    if ($action eq 'ADD') {
+                        foreach my $value (@values) {
+                            if ($value !~ /^ *$/) {
+                                $entryStr .= "$attr: $value\n";
+                            }
+                        }
+                    } elsif ($action eq 'DELETE') {
+                        if (@values && $values[0]) {
+                            foreach my $value (@values) {
+                                $entryStr =~ s/^$attr: $value\n//gmi;
+                            }
+                        } else {
+                            $entryStr =~ s/^$attr: .*\n//gmi;
+                        }
+                    } elsif ($action eq 'REPLACE') {
+                        $entryStr =~ s/^$attr: .*\n//gmi;
+                        foreach my $value (@values) {
+                            if ($value !~ /^ *$/) {
+                                $entryStr .= "$attr: $value\n";
+                            }
+                        }
+                    }
+                }
+                if (defined($rule->{entryattrs})) {
+                    if (grep(/$attr/i, split(/, */, $rule->{entryattrs})) && @values) {
+                        $modlist .= "$action\n$attr\n".join("\n", @values)."\n";
+                    }
+                }
+            }
+            if (!defined($rule->{entryattrs})) {
+                $modlist .= join("\n", @{$listp});
+            }
+
+            if ($entryStr && defined($rule->{filter}) && !LISM::Storage->parseFilter($rule->{filterobj}, $entryStr)) {
+                next;
+            }
+
             if (defined($rule->{profile}) && defined($rule->{roles})) {
-                if ($self->_setProfile('modify', $rule, $listp, $oldentryp)) {
+                if ($self->_setProfile('modify', $rule, ${$dnp}, $listp, $oldentryp)) {
                     $self->log(level => 'err', message => "modify rewrite rule of profile \"$rule->{profile}\" failed");
                     return LDAP_OPERATIONS_ERROR;
                 }
@@ -255,24 +311,6 @@ sub pre_modify
 
             my %rwcache;
             my $substitution = $rule->{substitution};
-            my $modlist = "${$dnp}\n";
-            if (defined($rule->{entryattrs})) {
-                my @list = @{$listp};
-                while (@list > 0) {
-                    my $action = shift @list;
-                    my $attr = shift @list;
-                    my @values;
-                    while (@list > 0 && $list[0] !~ /^(ADD|DELETE|REPLACE)$/) {
-                        push(@values, shift @list);
-                    }
-                    if (grep(/$attr/i, split(/, */, $rule->{entryattrs})) && @values) {
-                        $modlist .= "$action\n$attr\n".join("\n", @values);
-                    }
-                }
-            } else {
-                $modlist .= join("\n", @{$listp});
-            }
-
             $substitution = $self->_rewritePattern($substitution, '%0', $modlist);
             if ($oldentryp) {
                 my $tmpstr;
@@ -300,6 +338,8 @@ sub pre_modify
             (${$dnp}) = split(/\n/, $str);
 
             my @mod_list;
+            my %replace_attrs;
+            my %deleteall_attrs;
             while (@{$listp} > 0) {
                 my $action = shift @{$listp};
                 my $attr = shift @{$listp};
@@ -341,10 +381,74 @@ sub pre_modify
                         }
                     }
                     foreach my $rwattr (keys %replaced) {
-                        push(@mod_list, (defined($rwactions{$rwattr}) ? $rwactions{$rwattr} : $action, $rwattr, $self->_unique(@{$replaced{$rwattr}})));
+                        my $rwaction = defined($rwactions{$rwattr}) ? $rwactions{$rwattr} : $action;
+                        if ($rwaction eq 'REPLACE' && defined($replace_attrs{lc($rwattr)})) {
+                            for (my $i = 0; $i < @mod_list; $i++) {
+                                if ($mod_list[$i] =~ /^$rwattr$/i && $mod_list[$i - 1] eq 'REPLACE') {
+                                    $i++;
+                                    my @values;
+                                    my $j;
+                                    for ($j = 0; $i + $j < @mod_list; $j++) {
+                                        if ($mod_list[$i + $j] =~ /^(ADD|DELETE|REPLACE)$/) {
+                                            last;
+                                        }
+                                        if ($mod_list[$i + $j] !~ /^ *$/) {
+                                            push(@values, $mod_list[$i + $j]);
+                                        }
+                                    }
+                                    push(@values, @{$replaced{$rwattr}});
+                                    splice(@mod_list, $i, $j, $self->_unique(@values));
+                                }
+                            }
+                        } else {
+                            if ($action eq 'DELETE') {
+                                if (defined($deleteall_attrs{lc($attr)})) {
+                                    next;
+                                } elsif (defined($replace_attrs{lc($rwattr)}) && !$values[0]) {
+                                    next;
+                                } elsif (!${$replaced{$rwattr}}[0]) {
+                                    $deleteall_attrs{lc($attr)} = 1;
+                                }
+                            }
+                            push(@mod_list, (defined($rwactions{$rwattr}) ? $rwactions{$rwattr} : $action, $rwattr, $self->_unique(@{$replaced{$rwattr}})));
+                            if ($rwaction eq 'REPLACE') {
+                                $replace_attrs{lc($rwattr)} = 1;
+                            }
+                        }
                     }
                 } else {
-                    push(@mod_list, ($action, $attr));
+                    $str = $self->_rewriteParse($rule->{match}, $substitution, "$attr: ", \%rwcache);
+                    if (!defined($str)) {
+                        $self->log(level => 'err', message => "modify rewrite rule \"$rule->{substitution}\" to \"$attr: \" in \"${$dnp}\" failed");
+                        return LDAP_OPERATIONS_ERROR;
+                    } elsif ($str) {
+                        my ($rwattr, $value) = ($str =~ /(^[^:]*): (.*)$/);
+                        if ($rwattr) {
+                            $attr = $rwattr;
+                        }
+                        if ($action eq 'DELETE' && !$value) {
+                            if (defined($deleteall_attrs{lc($attr)})) {
+                                next;
+                            } elsif (defined($replace_attrs{lc($rwattr)})) {
+                                next;
+                            } else {
+                                $deleteall_attrs{lc($attr)} = 1;
+                            }
+                        }
+                        if ($action eq 'REPLACE' && defined($replace_attrs{lc($attr)})) {
+                            next;
+                        }
+                        push(@mod_list, ($action, $attr));
+                        if ($value) {
+                            push(@mod_list, $value);
+                        }
+                    } else {
+                        if ($action eq 'DELETE' && defined($deleteall_attrs{lc($attr)})) {
+                            next;
+                        }
+                        push(@mod_list, ($action, $attr));
+                        $deleteall_attrs{lc($attr)} = 1;
+                    }
                 }
             }
             @{$listp} = @mod_list;
@@ -459,11 +563,18 @@ Rewrite entry before add operation is done.
 sub pre_add
 {
     my $self = shift;
-    my ($dnp, $entryStrp) = @_;
+    my ($dnp, $entryStrp, $oldentryp, $errorp, $order) = @_;
     my $conf = $self->{_config};
 
     foreach my $rule (@{$conf->{rewrite}}) {
         if ($rule->{context} eq 'request' || $rule->{context} eq 'addRequest') {
+            if (defined($rule->{order})) {
+                if (!$order || $rule->{order} ne $order) {
+                    next;
+                }
+            } elsif ($order) {
+                next;
+            }
             if (defined($rule->{dn}) && ${$dnp} !~ /$rule->{dn}/i) {
                 next;
             }
@@ -472,7 +583,7 @@ sub pre_add
             }
 
             if (defined($rule->{profile}) && defined($rule->{roles})) {
-                if ($self->_setProfile('add', $rule, $entryStrp)) {
+                if ($self->_setProfile('add', $rule, ${$dnp}, $entryStrp)) {
                     $self->log(level => 'err', message => "add rewrite rule of profile \"$rule->{profile}\" failed");
                     return LDAP_OPERATIONS_ERROR;
                 }
@@ -631,11 +742,18 @@ Rewrite dn before delete operation is done.
 sub pre_delete
 {
     my $self = shift;
-    my ($dnp, $argsp, $oldentryp) = @_;
+    my ($dnp, $argsp, $oldentryp, $errorp, $order) = @_;
     my $conf = $self->{_config};
 
     foreach my $rule (@{$conf->{rewrite}}) {
         if ($rule->{context} eq 'request' || $rule->{context} eq 'deleteRequest') {
+            if (defined($rule->{order})) {
+                if (!$order || $rule->{order} ne $order) {
+                    next;
+                }
+            } elsif ($order) {
+                next;
+            }
             if (defined($rule->{dn}) && ${$dnp} !~ /$rule->{dn}/i) {
                 next;
             }
@@ -648,6 +766,10 @@ sub pre_delete
             my $substitution = $rule->{substitution};
             $substitution = $self->_rewritePattern($substitution, '%0', ${$dnp});
             if ($oldentryp) {
+                if (defined($rule->{filter}) && !LISM::Storage->parseFilter($rule->{filterobj}, ${$oldentryp})) {
+                    next;
+                }
+
                 my $tmpstr;
                 if (defined($rule->{entryattrs})) {
                     $tmpstr = '';
@@ -708,7 +830,6 @@ sub post_delete
     return LDAP_SUCCESS;
 }
 
-
 sub _checkConfig
 {
     my $self = shift;
@@ -762,6 +883,9 @@ sub _checkConfig
                 if (defined($conf->{rewritemap}{$map_name}->{substitution})) {
                     $lismmap->{substitution} = $conf->{rewritemap}{$map_name}->{substitution};
                     $lismmap->{substitution} =~ s/%([0-9]+)/\$$1/;
+                }
+                if (defined($conf->{rewritemap}{$map_name}->{attrmap})) {
+                    $lismmap->{attrmap} = $conf->{rewritemap}{$map_name}->{attrmap};
                 }
                 $self->{lismmap}{$map_name} = $lismmap;
             }
@@ -833,12 +957,15 @@ sub _rewriteParse
     # replace variables
     for (my $i = 0; $i < @matches; $i++) {
         my $num = $i + 1;
-        while ($substitution =~ /%$num/) {
+        for (my $j = 0; $substitution =~ /%$num/ && $j < 100; $j++) {
             $substitution = $self->_rewritePattern($substitution, "%$num", $matches[$i]);
+            if ($matches[$i] =~ /%$num/) {
+                last;
+            }
         }
         my $escaped = $matches[$i];
         $escaped =~ s/([\(\)*])/\\$1/g;
-        while ($substitution =~ /%\[${num}E\]/) {
+        for (my $j = 0; $substitution =~ /%\[${num}E\]/ && $j < 100; $j++) {
             $substitution = $self->_rewritePattern($substitution, '%\['.$num.'E\]', $escaped);
         }
     }
@@ -861,7 +988,7 @@ sub _rewriteParse
                     return undef;
                 }
 
-                @values = $self->_rewriteMap($map_name, $map_args, $is_dn);
+                @values = $self->_rewriteMap($map_name, $map_args, $is_dn, $rwcache);
                 if (!defined($values[0])) {
                     return undef;
                 }
@@ -959,7 +1086,7 @@ sub _passArgs
 
         $leftstr = substr($str, $pos);
         ($qtchar) = ($leftstr =~ /^ *, *(['"])/);
-        if (!$qtchar) {
+        if (!$qtchar && $leftstr !~ /^ *\)/) {
             my $tmppos = $pos;
             while (1) {
                 $tmppos = index($str, ",", $tmppos + 1);
@@ -987,13 +1114,13 @@ sub _passArgs
 sub _rewriteMap
 {
     my $self = shift;
-    my ($map_name, $map_args, $is_dn) = @_;
+    my ($map_name, $map_args, $is_dn, $rwcache) = @_;
     my $conf = $self->{_config};
     my @values = ();
 
     if (defined($conf->{rewritemap}{$map_name})) {
         my $method = '_'.$conf->{rewritemap}{$map_name}->{type}.'Map';
-        @values = $self->$method($map_name, $map_args, $is_dn);
+        @values = $self->$method($map_name, $map_args, $is_dn, $rwcache);
     }
 
     return @values;
@@ -1011,7 +1138,7 @@ sub _ldapMap
 sub _lismMap
 {
     my $self = shift;
-    my ($map_name, $map_args, $is_dn) = @_;
+    my ($map_name, $map_args, $is_dn, $rwcache) = @_;
     my $lismmap = $self->{lismmap}{$map_name};
     my $escape = 0;
     if ($map_args =~ /\\'/) {
@@ -1024,7 +1151,7 @@ sub _lismMap
             $args[$i] =~ s/\\27/\'/g;
         }
     }
-    my @vals = $self->_searchLism($lismmap, @args);
+    my @vals = $self->_searchLism($lismmap, $rwcache, @args);
     if ($is_dn && $lismmap->{attr} ne 'dn' && $lismmap->{attr} ne 'parentdn') {
         for (my $i = 0; $i < @vals; $i++) {
             $vals[$i] =~ s/\\/\\5C/g;
@@ -1070,10 +1197,18 @@ sub _regexpMap
 sub _setProfile
 {
     my $self = shift;
-    my ($func, $rule, $entryp, $oldentryp) = @_;
+    my ($func, $rule, $dn, $entryp, $oldentryp) = @_;
     my $suffix = $self->{lism}->{_config}->{basedn};
+    my ($basedn) = ($dn =~ /(ou=[^,]+,$suffix)$/i);
+    my @dbases;
+    foreach my $dname (keys %{$self->{lism}->{data}}) {
+        my ($dbase) = ($self->{lism}->{data}{$dname}->{suffix} =~ /^(.+),$suffix$/i);
+        if ($dbase) {
+            push(@dbases, $dbase);
+        }
+    }
 
-    my $profile_attr = $rule->{profile};
+    my @profile_attrs = split(/, */, $rule->{profile});
     my @attrs;
     foreach my $attr (split(/, */, $rule->{roles})) {
         push(@attrs, lc($attr));
@@ -1086,13 +1221,19 @@ sub _setProfile
     my @mod_list;
     if ($func eq 'add') {
         my $entryStr = ${$entryp}[0];
-        @add_profiles = ($entryStr =~ /^$profile_attr: (.+)$/gmi);
+        foreach my $profile_attr (@profile_attrs) {
+            push(@add_profiles, ($entryStr =~ /^$profile_attr: (.+)$/gmi));
+        }
     } elsif ($func eq 'modify') {
         my @list = @{$entryp};
         my $updated = 0;
-        if (grep(/^$profile_attr$/i, @list)) {
-            $updated = 1;
-        } else {
+        foreach my $profile_attr (@profile_attrs) {
+            if (grep(/^$profile_attr$/i, @list)) {
+                $updated = 1;
+                last;
+            }
+        }
+        if (!$updated) {
             foreach my $attr (@attrs) {
                 if (grep(/^$attr$/i, @list)) {
                     $updated = 1;
@@ -1105,25 +1246,39 @@ sub _setProfile
         }
 
         my $entryStr = $oldentryp ? ${$oldentryp} : '';
-        my @old_profiles = ($entryStr =~ /^$profile_attr: (.+)$/gmi);
         my %old_roles;
         foreach my $attr (@attrs) {
             my @tmpvals;
             foreach my $tmpval ($entryStr =~ /^$attr: (.+)$/gmi) {
-                push @tmpvals, $tmpval;
+                if ($tmpval !~ /^ *$/) {
+                    if ($basedn && $tmpval =~ /,ou=[^,]+,$basedn$/i) {
+                        foreach my $dbase (@dbases) {
+                            if ($tmpval =~ /$dbase,$basedn$/i) {
+                                $tmpval =~ s/$basedn/$suffix/i;
+                                last;
+                            }
+                        }
+                    }
+                    push @tmpvals, $tmpval;
+                }
             }
             $old_roles{$attr} = \@tmpvals;
         }
 
-        my $profile_updated = 0;
+        my %profile_updated;
         while (@list > 0) {
             my $action = shift @list;
             my $attr = shift @list;
+            my $key = lc($attr);
             my @tmpvals;
             while (@list > 0 && $list[0] !~ /^(ADD|DELETE|REPLACE)$/) {
-                push(@tmpvals, shift @list);
+                my $tmpval = shift @list;
+                if ($tmpval !~ /^ *$/) {
+                    push(@tmpvals, $tmpval);
+                }
             }
-            if ($attr =~ /^$profile_attr$/i) {
+            if (grep(/^$attr$/i,  @profile_attrs)) {
+                my @old_profiles = ($entryStr =~ /^$attr: (.+)$/gmi);
                 if ($action eq 'ADD') {
                     @add_profiles = @tmpvals;
                 } elsif ($action eq 'REPLACE') {
@@ -1143,38 +1298,65 @@ sub _setProfile
                     }
                 }
                 push(@mod_list, $action, $attr, @tmpvals);
-                $profile_updated = 1;
+                $profile_updated{$key} = 1;
             } elsif (grep(/^$attr$/i, @attrs)) {
-                if ($action eq 'ADD') {
-                    if (!defined(${$replace_roles{$attr}})) {
-                        $replace_roles{$attr} = $old_roles{$attr};
+                if (@tmpvals) {
+                    for (my $i = 0; $i < @tmpvals; $i++) {
+                        if ($basedn && $tmpvals[$i] =~ /,ou=[^,]+,$basedn$/i) {
+                            foreach my $dbase (@dbases) {
+                                if ($tmpvals[$i] =~ /$dbase,$basedn$/i) {
+                                    $tmpvals[$i] =~ s/$basedn/$suffix/i;
+                                    last;
+                                }
+                            }
+                        }
                     }
-                    push(@{$replace_roles{$attr}}, @tmpvals);
+                }
+                if ($action eq 'ADD') {
+                    if (!defined(${$replace_roles{$key}})) {
+                        $replace_roles{$key} = $old_roles{$key};
+                    }
+                    foreach my $tmpval (@tmpvals) {
+                        my $regex_val = $tmpval;
+                        $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                        if (!grep(/^$regex_val$/i, @{$replace_roles{$key}})) {
+                            push(@{$replace_roles{$key}}, $tmpval);
+                        }
+                    }
                 } elsif ($action eq 'REPLACE') {
-                    $replace_roles{$attr} = \@tmpvals;
+                    $replace_roles{$key} = \@tmpvals;
                 } elsif ($action eq 'DELETE') {
-                    if (!defined($replace_roles{$attr})) {
-                        $replace_roles{$attr} = $old_roles{$attr};
+                    if (!defined($replace_roles{$key})) {
+                        $replace_roles{$key} = $old_roles{$key};
                     }
                     if (@tmpvals) {
                         foreach my $tmpval (@tmpvals) {
-                            for (my $i = 0; $i < @{$replace_roles{$attr}}; $i++) {
-                                if (${$replace_roles{$attr}}[$i] =~ /^$tmpval$/i) {
-                                    splice(@{$replace_roles{$attr}}, $i, 1);
+                            for (my $i = 0; $i < @{$replace_roles{$key}}; $i++) {
+                                my $regex_val = $tmpval;
+                                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                if (${$replace_roles{$key}}[$i] =~ /^$regex_val$/i) {
+                                    splice(@{$replace_roles{$key}}, $i, 1);
                                     last;
                                 }
                             }
                         }
                     } else {
-                        $replace_roles{$attr} = [];
+                        $replace_roles{$key} = [];
                     }
                 }
             } else {
                 push(@mod_list, $action, $attr, @tmpvals);
             }
         }
-        if (!$profile_updated && @old_profiles) {
-            @add_profiles = @old_profiles;
+        foreach my $profile_attr (@profile_attrs) {
+            if (!defined($profile_updated{lc($profile_attr)})) {
+                my @old_profiles = ($entryStr =~ /^$profile_attr: (.+)$/gmi);
+                foreach my $profile (@old_profiles) {
+                    if (!grep(/^$profile$/i, @add_profiles)) {
+                        push(@add_profiles, $profile);
+                    }
+                }
+            }
         }
         foreach my $attr (@attrs) {
             if (!defined($replace_roles{$attr})) {
@@ -1196,11 +1378,23 @@ sub _setProfile
                 foreach my $attr (@attrs) {
                     my @tmpvals = ($entryStr =~ /^$attr: (.+)$/gmi);
                     if (@tmpvals) {
+                        for (my $i = 0; $i < @tmpvals; $i++) {
+                            if ($basedn && $tmpvals[$i] =~ /,ou=[^,]+,$basedn$/i) {
+                                foreach my $dbase (@dbases) {
+                                    if ($tmpvals[$i] =~ /$dbase,$basedn$/i) {
+                                        $tmpvals[$i] =~ s/$basedn/$suffix/i;
+                                        last;
+                                    }
+                                }
+                            }
+                        }
                         if (!defined($add_roles{$attr})) {
                             $add_roles{$attr} = \@tmpvals;
                         } else {
                             foreach my $tmpval (@tmpvals) {
-                                if (!grep(/^$tmpval$/i, @{$add_roles{$attr}})) {
+                                my $regex_val = $tmpval;
+                                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                if (!grep(/^$regex_val$/i, @{$add_roles{$attr}})) {
                                     push(@{$add_roles{$attr}}, $tmpval);
                                 }
                             }
@@ -1224,11 +1418,23 @@ sub _setProfile
                 foreach my $attr (@attrs) {
                     my @tmpvals = ($entryStr =~ /^$attr: (.+)$/gmi);
                     if (@tmpvals) {
+                        for (my $i = 0; $i < @tmpvals; $i++) {
+                            if ($basedn && $tmpvals[$i] =~ /,ou=[^,]+,$basedn$/i) {
+                                foreach my $dbase (@dbases) {
+                                    if ($tmpvals[$i] =~ /$dbase,$basedn$/i) {
+                                        $tmpvals[$i] =~ s/$basedn/$suffix/i;
+                                        last;
+                                    }
+                                }
+                            }
+                        }
                         if (!defined($del_roles{$attr})) {
                             $del_roles{$attr} = \@tmpvals;
                         } else {
                             foreach my $tmpval (@tmpvals) {
-                                if (!grep(/^$tmpval$/i, @{$del_roles{$attr}})) {
+                                my $regex_val = $tmpval;
+                                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                if (!grep(/^$regex_val$/i, @{$del_roles{$attr}})) {
                                     push(@{$del_roles{$attr}}, $tmpval);
                                 }
                             }
@@ -1242,44 +1448,45 @@ sub _setProfile
     if ($func eq 'add') {
         my $entryStr = ${$entryp}[0];
         foreach my $attr (@attrs) {
+            ${$entryp}[0] =~ s/^$attr:  +\n//gmi;
+            my @cmpvals = ($entryStr =~ /^$attr: (.+)$/gmi);
             foreach my $tmpval (@{$add_roles{$attr}}) {
-                if ($entryStr !~ /^$attr: $tmpval$/mi) {
-                    ${$entryp}[0] .= "\n$attr: $tmpval";
+                if ($tmpval =~ /^ *$/) {
+                    next;
+                }
+                my $regex_val = $tmpval;
+                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                if (!grep(/^$regex_val$/i, @cmpvals)) {
+                    ${$entryp}[0] .= "$attr: $tmpval\n";
                 }
             }
         }
     } elsif ($func eq 'modify') {
         foreach my $attr (@attrs) {
             foreach my $tmpval (@{$del_roles{$attr}}) {
+                if ($tmpval =~ /^ *$/) {
+                    next;
+                }
+                my $regex_val = $tmpval;
+                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
                 for (my $i = 0; $i < @{$replace_roles{$attr}}; $i++) {
-                    if (${$replace_roles{$attr}}[$i] =~ /,ou=[^,]+,$suffix$/i) {
-                        my ($cmpval) = (${$replace_roles{$attr}}[$i] =~ /^(.+,ou=[^,]+,)$suffix$/i);
-                        if ($tmpval =~ /^$cmpval/i) {
-                            splice(@{$replace_roles{$attr}}, $i, 1);
-                            last;
-                        }
-                    } else {
-                        if (${$replace_roles{$attr}}[$i] =~ /^$tmpval$/i) {
-                            splice(@{$replace_roles{$attr}}, $i, 1);
-                            last;
-                        }
+                    if (${$replace_roles{$attr}}[$i] =~ /^$regex_val$/i) {
+                        splice(@{$replace_roles{$attr}}, $i, 1);
+                        last;
                     }
                 }
             }
             foreach my $tmpval (@{$add_roles{$attr}}) {
+                if ($tmpval =~ /^ *$/) {
+                    next;
+                }
+                my $regex_val = $tmpval;
+                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
                 my $match = 0;
                 for (my $i = 0; $i < @{$replace_roles{$attr}}; $i++) {
-                    if (${$replace_roles{$attr}}[$i] =~ /,ou=[^,]+,$suffix$/i) {
-                        my ($cmpval) = (${$replace_roles{$attr}}[$i] =~ /^(.+,ou=[^,]+,)$suffix$/i);
-                        if ($tmpval =~ /^$cmpval/i) {
-                            $match = 1;
-                            last;
-                        }
-                    } else {
-                        if (${$replace_roles{$attr}}[$i] =~ /^$tmpval$/i) {
-                            $match = 1;
-                            last;
-                        }
+                    if (${$replace_roles{$attr}}[$i] =~ /^$regex_val$/i) {
+                        $match = 1;
+                        last;
                     }
                 }
                 if (!$match) {

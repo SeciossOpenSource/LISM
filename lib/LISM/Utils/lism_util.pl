@@ -33,13 +33,17 @@ sub date2time
 
 sub time2date
 {
-    my ($time) = @_;
+    my ($time, $format) = @_;
 
     if (!defined($time)) {
         $time = time;
     }
 
-    return strftime("%Y%m%d%H%M%S", localtime($time))."Z";
+    if ($format) {
+        return strftime($format, localtime($time));
+    } else {
+        return strftime("%Y%m%d%H%M%S", localtime($time))."Z";
+    }
 }
 
 sub getValue
@@ -47,6 +51,29 @@ sub getValue
     my ($entryStr, $attr, $default, $escape) = @_;
 
     my $value = ($entryStr =~ /^$attr:\:? +(.*)$/mi)[0];
+    if (!defined($value) && defined($default)) {
+        $value = $default;
+    }
+    if ($value && $escape) {
+        $value =~ s/"/\\22/g;
+        $value =~ s/#/\\23/g;
+        $value =~ s/\+/\\2B/g;
+        $value =~ s/,/\\2C/g;
+        $value =~ s/\//\\2F/g;
+        $value =~ s/;/\\3B/g;
+        $value =~ s/</\\3C/g;
+        $value =~ s/>/\\3E/g;
+        $value =~ s/=/\\3D/g;
+    }
+
+    return $value;
+}
+
+sub getModValue
+{
+    my ($entryStr, $attr, $default, $escape) = @_;
+
+    my ($value) = ($entryStr =~ /\n$attr\n([^\n]*)/i);
     if (!defined($value) && defined($default)) {
         $value = $default;
     }
@@ -223,6 +250,13 @@ sub dn2oupath
     my @orgs = ($dn =~ /ou=([^,]+)/gi);
     if (@orgs) {
         my $oupath = join('/', reverse(@orgs));
+        $oupath =~ s/\\"/"/g;
+        $oupath =~ s/\\#/#/g;
+        $oupath =~ s/\\\+/+/g;
+        $oupath =~ s/\\;/;/g;
+        $oupath =~ s/\\2B/+/gi;
+        $oupath =~ s/\\3C/</gi;
+        $oupath =~ s/\\3E/>/gi;
         if ($normalize) {
             $oupath =~ tr/A-Z/a-z/;
         }
@@ -268,6 +302,17 @@ sub path2dn
     return $dn;
 }
 
+sub modrdn
+{
+    my ($rdn, $modlist) = @_;
+
+    if ($modlist =~ /^$rdn,/i) {
+        return '';
+    } else {
+        return "\nlismnewrdn: $rdn";
+    }
+}
+
 sub regexCount
 {
     my ($str, $regex) = @_;
@@ -286,6 +331,118 @@ sub binToHex
     my ($str) = @_;
 
     return unpack("H*", decode_base64($str));
+}
+
+sub randPasswd
+{
+    my $num = shift;
+    my $string;
+    my @token;
+    my @str_array;
+
+    if ($num !~ /[0-9]/) {
+        return undef;
+    }
+
+    my @number = (2..9);
+    my @small = ('a'..'z');
+    splice(@small, 12);
+    @small = grep { !/^\s*$/ } @small;
+    my @large = ('A'..'Z');
+    splice(@large, 9, 15);
+    @large = grep { !/^\s*$/ } @large;
+    push(@token,\@number);
+    push(@token,\@small);
+    push(@token,\@large);
+
+    my ($sec, $microsec) = gettimeofday();
+    srand($microsec);
+    for (my $i = 0; $i < 3; $i++) {
+        my @chars = @{$token[$i]};
+        for (my $j = 0; $j < $num / 3 && length($#str_array) < $num; $j++) {
+            push(@str_array, $chars[int(rand() * @chars)]);
+        }
+    }
+
+    for (my $i=0; $i < $#str_array+1; $i++) {
+        my $a = int(rand($#str_array+1));
+        my $b = int(rand($#str_array+1));
+        (@str_array[$a],@str_array[$b])=(@str_array[$b],@str_array[$a]);
+    }
+    foreach my $char (@str_array) {
+        $string .= $char;
+    }
+
+    return $string;
+}
+
+sub setAdditionalAttr
+{
+    my ($value, $delim, $attr) = @_;
+    my ($fval, @avals) = split(/$delim/, $value);
+
+    my $ret = $fval;
+    foreach my $aval (@avals) {
+        $ret .= "\n$attr: $aval";
+    }
+
+    return $ret;
+}
+
+sub e164 {
+    my ($num, $countryCode, $is_space) = @_;
+
+    my @elts = split(/\-/, $num);
+    if (@elts < 3) {
+        return '';
+    }
+
+    $elts[0] =~ s/^0+//;
+    my $enum;
+    if ($is_space) {
+        $enum = $elts[0].' '.$elts[1].' '.$elts[2];
+        if ($countryCode) {
+            $enum = '+'.$countryCode.' '.$enum;
+        }
+    } else {
+        $enum = '('.$elts[0].')'.$elts[1].'-'.$elts[2];
+        if ($countryCode) {
+            $enum = '+'.$countryCode.$enum;
+        }
+    }
+
+    return $enum;
+}
+
+sub str2byte {
+    my ($str) = @_;
+
+    $str =~ s/(.)/sprintf('%X', ord($1))/eg;
+
+    return $str;
+}
+
+sub unescapedn {
+    my ($value) = @_;
+
+    $value =~ s/\\\+/+/g;
+    $value =~ s/\\2B/+/gi;
+
+    return $value;
+}
+
+sub replaceAttrVals
+{
+    my ($entryStr, $attr, $match, $substitute) = @_;
+
+    my @values = ($entryStr =~ /^$attr: (.*)$/gmi);
+    for (my $i = 0; $i < @values; $i++) {
+        if ($values[$i]) {
+            $values[$i] =~ s/$match/$substitute/i;
+        }
+    }
+
+    return @values;
 }
 
 1;

@@ -7,6 +7,7 @@ use LISM::Constant;
 use Net::LDAP::Filter;
 use DBI;
 use POSIX qw(strftime);
+use List::MoreUtils 'first_index';
 use Encode;
 use Data::Dumper;
 
@@ -112,6 +113,8 @@ sub _checkConfig
 
     if (!defined($conf->{delim})) {
         $conf->{delim}[0] = ',';
+    } elsif ($conf->{delim}[0] eq '\t') {
+        $conf->{delim}[0] = "\t";
     }
     if (!defined($conf->{valdelim})) {
         $conf->{valdelim}[0] = ';';
@@ -269,6 +272,7 @@ sub _objSearch
                     if (defined($oconf->{attr}{$attr}->{column})) {
                         foreach my $value (split(/$valdlm/, $data[$oconf->{attr}{$attr}->{column}[0]])) {
                             $value =~ s/ *$//;
+                            $value =~ s/\\3B/;/g;
                             $entry = $entry."$attr: $value\n";
                         }
                     } elsif (defined($oconf->{attr}{$attr}->{rexpr})) {
@@ -320,8 +324,18 @@ sub _objSearch
 
                 # parse filter
                 if ($self->parseFilter($filter, $entry)) {
-                    push(@match_entries, $self->_pwdFormat($entry));
-                    push(@match_keys, $data[$oconf->{id}[0]->{column}[0]]);
+                    if (defined($oconf->{unique}) && $oconf->{unique}) {
+                        my $index = first_index {$_ eq $data[$oconf->{id}[0]->{column}[0]]} @match_keys;
+                        if ($index < 0) {
+                            push(@match_entries, $self->_pwdFormat($entry));
+                            push(@match_keys, $data[$oconf->{id}[0]->{column}[0]]);
+                        } else {
+                            $match_entries[$index] = $self->_pwdFormat($entry);
+                        }
+                    } else {
+                        push(@match_entries, $self->_pwdFormat($entry));
+                        push(@match_keys, $data[$oconf->{id}[0]->{column}[0]]);
+                    }
                 }
             }
             if ($self->_close($file, $lock, $oconf)) {
@@ -464,6 +478,9 @@ sub _objModify
                 if (defined($oconf->{attr}{modifiersname}) && defined($oconf->{attr}{modifiersname}->{column})) {
                     $data[$oconf->{attr}{modifiersname}->{column}[0]] = defined($self->{lism}->{bind}{edn}) ? $self->{lism}->{bind}{edn} : $self->{lism}->{bind}{dn};
                 }
+                if (defined($oconf->{attr}{requestid}) && defined($oconf->{attr}{requestid}->{column})) {
+                    $data[$oconf->{attr}{requestid}->{column}[0]] = defined($self->{lism}->{bind}{reqid}) ? $self->{lism}->{bind}{reqid} : 0;
+                }
 
                 foreach my $strginfo (@{$oconf->{strginfo}}) {
                     if (defined($strginfo->{column}) && defined($strginfo->{value})) {
@@ -579,6 +596,10 @@ sub _objModify
                         $self->log(level => 'err', message => "CSV field can't contain carriage return");
                         $rc = LDAP_UNWILLING_TO_PERFORM;
                         last;
+                    }
+
+                    for (my $i = 0; $i < @values; $i++) {
+                        $values[$i] =~ s/$valdlm/\\3B/g;
                     }
 
                     if (defined($oconf->{attr}{$attr}->{column})) {
@@ -788,8 +809,15 @@ sub _objAdd
                 if ($attr eq 'modifiersname') {
                     $values[0] = defined($self->{lism}->{bind}{edn}) ? $self->{lism}->{bind}{edn} : $self->{lism}->{bind}{dn};
                 }
+                if ($attr eq 'requestid') {
+                    $values[0] = defined($self->{lism}->{bind}{reqid}) ? $self->{lism}->{bind}{reqid} : 0;
+                }
                 if ($attr eq 'modifytimestamp') {
                     $timestamp = $values[0];
+                }
+
+                for (my $i = 0; $i < @values; $i++) {
+                    $values[$i] =~ s/$valdlm/\\3B/g;
                 }
 
                 if (defined($oconf->{attr}{$attr}->{rexpr})) {
@@ -1007,6 +1035,8 @@ sub _objDelete
                             $data[$oconf->{attr}{$attr}->{column}[0]] = defined($self->{lism}->{bind}{edn}) ? $self->{lism}->{bind}{edn} : $self->{lism}->{bind}{dn};
                         } elsif ($attr eq 'modifytimestamp') {
                             $data[$oconf->{attr}{$attr}->{column}[0]] = strftime("%Y%m%d%H%M%S", localtime(time))."Z";
+                        } elsif ($attr eq 'requestid') {
+                            $data[$oconf->{attr}{$attr}->{column}[0]] = defined($self->{lism}->{bind}{reqid}) ? $self->{lism}->{bind}{reqid} : 0;
                         } else {
                             $data[$oconf->{attr}{$attr}->{column}[0]] = "";
                         }

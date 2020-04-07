@@ -14,6 +14,8 @@ sub searchLdap
     my $pid = ${$pids}[$#{$pids}];
     my @keys = ();
     my @entries = ();
+    my $binddn;
+    my $bindpw;
     my $msg;
     my $rc;
     my $error;
@@ -23,8 +25,10 @@ sub searchLdap
         return (LDAP_OTHER, "Invalid uri", \@keys, @entries);
     }
 
-    my $binddn = $param->{binddn}->{value};
-    my $bindpw = $param->{bindpw}->{value};
+    if (defined($param->{binddn})) {
+        $binddn = $param->{binddn}->{value};
+        $bindpw = $param->{bindpw}->{value};
+    }
 
     for (my $i = 0; $i < $RETRY; $i++) {
         if (!defined($self->{plugin}->{ldap})) {
@@ -36,7 +40,11 @@ sub searchLdap
             }
         }
 
-        $msg = $self->{plugin}->{ldap}->bind($binddn, password => $bindpw);
+        if ($binddn) {
+            $msg = $self->{plugin}->{ldap}->bind($binddn, password => $bindpw);
+        } else {
+            $msg = $self->{plugin}->{ldap}->bind();
+        }
         if ($msg->code) {
             $self->{plugin}->{ldap}->unbind();
             undef($self->{plugin}->{ldap});
@@ -60,10 +68,7 @@ sub searchLdap
         for (my $i = 0; $i < $msg->count; $i++) {
             my $entry = $msg->entry($i);
             my $dn = $entry->dn;
-            $dn =~ s/$searchdn/$self->{suffix}/i;
-            if ($dn !~ /$base$/i) {
-                next;
-            }
+            $dn =~ s/$searchdn/$base/i;
 
             my $entryStr = "dn: $dn\n";
             foreach my $attr ($entry->attributes) {

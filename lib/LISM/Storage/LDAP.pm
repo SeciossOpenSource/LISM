@@ -173,7 +173,11 @@ sub bind
                 $binddn =~ s/^$ldapmap->{local}=/$ldapmap->{foreign}=/i;
             }
         }
-        $binddn =~ s/$self->{suffix}$/$conf->{nc}/i;
+        if ($conf->{nc}) {
+            $binddn =~ s/$self->{suffix}$/$conf->{nc}/i;
+        } else {
+            $binddn =~ s/,$self->{suffix}$//i;
+        }
 
         $msg = $self->{bind}->bind($binddn, password => $passwd);
         if ($msg->code != LDAP_OPERATIONS_ERROR) {
@@ -205,8 +209,17 @@ Search LDAP information.
 sub search
 {
     my $self = shift;
+    my $conf = $self->{_config};
 
-    return $self->_do_search(undef, @_);
+    if (defined($conf->{pagesize})) {
+        my @control;
+        my $page = Net::LDAP::Control::Paged->new(size => $conf->{pagesize}[0]);
+        push(@control, $page);
+
+        return $self->_do_search(\@control, @_);
+    } else {
+        return $self->_do_search(undef, @_);
+    }
 }
 
 =pod
@@ -247,7 +260,11 @@ sub compare
         }
     }
 
-    $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    if ($conf->{nc}) {
+        $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    } else {
+        $dn =~ s/,$self->{suffix}$//i;
+    }
 
     my $msg = $self->{ldap}->compare($dn, attr => $key, value => $val);
 
@@ -270,19 +287,12 @@ sub modify
     my ($dn, @list) = @_;
     my $conf = $self->{_config};
     my $rc = LDAP_SUCCESS;
+    my ($rdnattr) = ($dn =~ /^([^=]+)=/);
     my $foreign_rdnattr;
+    my @orglist = @list;
 
     if (defined($conf->{noop}) && grep(/^modify$/i, @{$conf->{noop}})) {
         return $rc;
-    }
-
-    $rc = $self->_beginWork('modify', $dn, @list);
-    if ($rc) {
-        return $rc;
-    }
-
-    if ($self->_getConnect()) {
-        return LDAP_SERVER_DOWN;
     }
 
     # DN mapping
@@ -296,7 +306,11 @@ sub modify
             $dn =~ s/^$ldapmap->{local}=/$ldapmap->{foreign}=/i;
         }
     }
-    $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    if ($conf->{nc}) {
+        $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    } else {
+        $dn =~ s/,$self->{suffix}$//i;
+    }
 
     my @changes;
     while ( @list > 0) {
@@ -316,7 +330,15 @@ sub modify
             next;
         }
 
-        if ($foreign_rdnattr && $key eq $foreign_rdnattr) {
+        if ($foreign_rdnattr) {
+            if ($key eq $foreign_rdnattr) {
+                next;
+            }
+        } elsif ($key =~ /^$rdnattr$/i) {
+            next;
+        }
+
+        if ($key eq 'customattribute') {
             next;
         }
 
@@ -324,8 +346,23 @@ sub modify
             last;
         }
 
+        if ($key =~ /^lismnewrdn$/i) {
+            my $rc = $self->modrdn($dn, $values[0], 1);
+            if ($rc) {
+                return $rc;
+            } else {
+                $dn =~ s/^[^,]+/$values[0]/;
+                next;
+            }
+        }
+
         if ($key =~ /^lismparentdn$/i) {
             if ($action eq "REPLACE" && @values && $values[0]) {
+                if ($conf->{nc}) {
+                    $values[0] =~ s/$self->{suffix}/$conf->{nc}/i;
+                } else {
+                    $values[0] =~ s/,$self->{suffix}//i;
+                }
                 if ($dn =~ /^[^,]+,$values[0]$/i) {
                     return LDAP_SUCCESS;
                 } else {
@@ -357,7 +394,11 @@ sub modify
         }
 
         for (my $i = 0; $i < @values; $i++) {
-            $values[$i] =~ s/$self->{suffix}/$conf->{nc}/i;
+            if ($conf->{nc}) {
+                $values[$i] =~ s/$self->{suffix}/$conf->{nc}/i;
+            } else {
+                $values[$i] =~ s/,$self->{suffix}//i;
+            }
             if ($key !~ /$rawattrs/ && $values[$i]) {
                 # replace carriage return to linefeed
                 $values[$i] =~ s/\r/$conf->{breakchar}/g;
@@ -371,7 +412,23 @@ sub modify
         }
     }
 
+    if (!@changes) {
+        return LDAP_SUCCESS;
+    }
+
+    $rc = $self->_beginWork('modify', $dn, @orglist);
+    if ($rc) {
+        return $rc;
+    }
+
+    if ($self->_getConnect()) {
+        return LDAP_SERVER_DOWN;
+    }
+
     my $msg = $self->{ldap}->modify($dn, changes => [@changes]);
+    if ($msg->code) {
+        $self->log(level => 'err', message => "Modifying $dn failed: ".$msg->error."(".$msg->code.")");
+    }
 
     $self->_freeConnect($msg);
 
@@ -429,14 +486,18 @@ sub add
             $dn =~ s/^$ldapmap->{local}=/$ldapmap->{foreign}=/i;
         }
     }
-    $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    if ($conf->{nc}) {
+        $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    } else {
+        $dn =~ s/,$self->{suffix}$//i;
+    }
 
     my %attrs;
     my @info = split(/\n/, $entryStr);
     foreach my $attr (@info) {
         my $key;
         my $val;
-        if ($attr =~ /:: /) {
+        if ($attr =~ /^[^ ]+::/) {
             ($key, $val) = split(/:: /, $attr);
             $val = decode_base64($val);
         } else {
@@ -447,7 +508,11 @@ sub add
             next;
         }
 
-        if ($key =~ /^(createTimestamp|modifyTimestamp|plainpassword)$/i) {
+        if ($key =~ /^(createTimestamp|modifyTimestamp|plainpassword|customattribute)$/i) {
+            next;
+        }
+
+        if ($val eq '') {
             next;
         }
 
@@ -468,7 +533,11 @@ sub add
             }
         }
 
-        $val =~ s/$self->{suffix}/$conf->{nc}/i;
+        if ($conf->{nc}) {
+            $val =~ s/$self->{suffix}/$conf->{nc}/i;
+        } else {
+            $val =~ s/,$self->{suffix}//i;
+        }
 
         # replace carriage return to linefeed
         $val =~ s/\r/$conf->{breakchar}/g;
@@ -505,19 +574,33 @@ sub add
                 @delentries = sort {length $b <=> length $a} @delentries;
                 foreach my $delentry (@delentries) {
                     my ($deldn) = ($delentry =~ /^dn: ([^\n]+)/);
-                    $deldn =~ s/$self->{suffix}/$conf->{nc}/i;
-                    my $delmsg = $self->{ldap}->delete($deldn);
-                    if ($delmsg->code) {
-                        $rc = $delmsg->code;
-                        last;
+                    if ($conf->{nc}) {
+                        $deldn =~ s/$self->{suffix}/$conf->{nc}/i;
+                    } else {
+                        $deldn =~ s/,$self->{suffix}//i;
+                    }
+                    if (defined($deleteflag->{active})) {
+                        $msg = $self->{ldap}->modify($deldn, changes => [("replace" => [$key => [$deleteflag->{active}]])]);
+                        if ($msg->code) {
+                            last;
+                        }
+                    } else {
+                        my $delmsg = $self->{ldap}->delete($deldn);
+                        if ($delmsg->code) {
+                            $rc = $delmsg->code;
+                            last;
+                        }
                     }
                 }
-                if (!$rc) {
+                if (!$rc && !defined($deleteflag->{active})) {
                     $msg = $self->{ldap}->add($dn, attrs => [%attrs]);
                 }
                 last;
             }
         }
+    }
+    if ($msg->code) {
+        $self->log(level => 'err', message => "Adding $dn failed: ".$msg->error."(".$msg->code.")");
     }
 
     $self->_freeConnect($msg);
@@ -554,7 +637,11 @@ sub modrdn
         }
     }
 
-    $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    if ($conf->{nc}) {
+        $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    } else {
+        $dn =~ s/,$self->{suffix}$//i;
+    }
 
     my $msg = $self->{ldap}->modrdn($dn, newrdn => $newrdn, deleteoldrdn => $delFlag);
 
@@ -604,6 +691,9 @@ sub delete
             }
             if (!defined($deleteflag->{filter}) || $self->parseFilter($deleteflag->{filterobj}, $entryStr)) {
                 $rc = $self->modify($dn, "REPLACE", $key, $deleteflag->{value});
+                if (!$rc && defined($deleteflag->{superior})) {
+                    $rc = $self->move($dn, $deleteflag->{superior});
+                }
                 $match = 1;
             }
         }
@@ -632,9 +722,16 @@ sub delete
         }
     }
 
-    $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    if ($conf->{nc}) {
+        $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    } else {
+        $dn =~ s/,$self->{suffix}$//i;
+    }
 
     my $msg = $self->{ldap}->delete($dn);
+    if ($msg->code) {
+        $self->log(level => 'err', message => "Deleting $dn failed: ".$msg->error."(".$msg->code.")");
+    }
 
     $self->_freeConnect($msg);
 
@@ -655,6 +752,10 @@ sub move
     my ($dn, $parentdn) = @_;
     my $conf = $self->{_config};
 
+    if ($self->_getConnect()) {
+        return LDAP_SERVER_DOWN;
+    }
+
     # DN mapping
     foreach my $ldapmap (@{$conf->{ldapmap}}) {
         if ($ldapmap->{type} =~ /^dn$/i) {
@@ -666,27 +767,20 @@ sub move
         }
     }
 
-    $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
-    $parentdn =~ s/$self->{suffix}$/$conf->{nc}/i;
-
-    my ($rc, $entryStr) = $self->_do_search(undef, $dn, 0, 0, 1, 0, '(objectClass=*)');
-    if ($rc) {
-        return $rc;
+    if ($conf->{nc}) {
+        $dn =~ s/$self->{suffix}$/$conf->{nc}/i;
+        $parentdn =~ s/$self->{suffix}$/$conf->{nc}/i;
+    } else {
+        $dn =~ s/,$self->{suffix}$//i;
+        $parentdn =~ s/,$self->{suffix}$//i;
     }
-
     my ($rdn) = ($dn =~ /^([^,]+),/);
-    $entryStr =~ s/^dn:.*\n//;
-    $rc = $self->add("$rdn,$parentdn", $entryStr);
-    if ($rc) {
-        return $rc;
-    }
 
-    $rc = $self->delete($dn);
-    if ($rc) {
-        return $rc;
-    }
+    my $msg = $self->{ldap}->moddn($dn, newrdn => $rdn, newsuperior => $parentdn, deleteoldrdn => 1);
 
-    return $rc;
+    $self->_freeConnect($msg);
+
+    return $msg->code;
 }
 
 =pod
@@ -702,7 +796,6 @@ sub hashPasswd
     my $self = shift;
     my ($passwd, $salt) =@_;
     my $conf = $self->{_config};
-    my $hashpw;
 
     my ($htype, $otype) = split(/:/, $conf->{hash});
     if ($passwd =~ /^{([^}]+)}/ && $htype ne $1) {
@@ -715,7 +808,7 @@ sub hashPasswd
         # encoding for Active Directory
         $hashpw = '';
         map {$hashpw .= "$_\000"} split(//, "\"$passwd\"");
-    } elsif (defined($hashpw) && $htype =~ /^CRYPT|MD5|SHA$/i) {
+    } elsif (defined($hashpw) && $htype =~ /^CRYPT|MD5|SHA|SSHA$/i) {
         $hashpw = "{$htype}$hashpw";
     }
 
@@ -820,6 +913,19 @@ sub _checkConfig
         $conf->{transaction}[0] = 'off';
     }
 
+    if (defined($conf->{decrypt}) && defined($conf->{bindpw}) && !defined($conf->{passwd_decrypted})) {
+        my $decrypt = $conf->{decrypt}[0];
+        my $value = $conf->{bindpw}[0];
+        $decrypt =~ s/\%s/$value/;
+        $value = $self->_doFunction($decrypt);
+        if (!defined($value)) {
+            $self->log(level => 'err', message => "Decrypt of bindpw failed");
+            return 1;
+        }
+        $conf->{bindpw}[0] = $value;
+        $conf->{passwd_decrypted} = 1;
+    }
+
     if (defined($conf->{deleteflag})) {
         foreach my $key (keys %{$conf->{deleteflag}}) {
             if ($conf->{deleteflag}{$key}->{filter}) {
@@ -893,6 +999,7 @@ sub _do_search
         }
     }
 
+    my $undeleted = 0;
     my ($lismctrls) = ($filterStr =~ /^\(&\($controlAttr=([^\)]+)\)/i);
     if ($lismctrls) {
         $filterStr =~ s/^\(&\($controlAttr=[^\)]+\)//;
@@ -918,6 +1025,9 @@ sub _do_search
             } elsif ($key eq 'sort') {
                 $ldapctrl = Net::LDAP::Control::Sort->new(order => $value);
                 $class = 'Net::LDAP::Control::Sort';
+            } elsif ($key eq 'undeleted') {
+                $undeleted = 1;
+                next;
             } else {
                 next;
             }
@@ -959,6 +1069,11 @@ sub _do_search
         @attrs = @{$conf->{defattrs}};
     }
 
+    my @disable_attrs;
+    if (defined($ENV{lism_disableattrs})) {
+        @disable_attrs = split(/, */, $ENV{lism_disableattrs});
+    }
+
     $filterStr = decode('utf8', $filterStr);
 
     # Attribute mapping
@@ -978,13 +1093,33 @@ sub _do_search
         }
     }
 
-    $base =~ s/$self->{suffix}$/$conf->{nc}/i;
-    $filterStr =~ s/$self->{suffix}(\)*)/$conf->{nc}$1/gi;
+    if ($conf->{nc}) {
+        $base =~ s/$self->{suffix}$/$conf->{nc}/i;
+        $filterStr =~ s/$self->{suffix}(\)*)/$conf->{nc}$1/gi;
+    } else {
+        $base =~ s/,?$self->{suffix}$//i;
+        $filterStr =~ s/,$self->{suffix}(\)*)/$1/gi;
+    }
     $filterStr = encode('utf8', $filterStr);
     if (!@attrs) {
         @attrs = ('*');
     } elsif (@attrs == 1 && $attrs[0] eq 'dn') {
         push(@attrs, 'objectClass');
+    }
+
+    my @del_flags;
+    if ($undeleted && defined($conf->{deleteflag})) {
+        foreach my $key (keys %{$conf->{deleteflag}}) {
+            my $deleteflag = $conf->{deleteflag}{$key};
+            if (!defined($deleteflag->{dn}) || !defined($deleteflag->{ovrfilter})) {
+                next;
+            }
+            my $del_filter = $deleteflag->{ovrfilter};
+            if (defined($deleteflag->{filter})) {
+                $del_filter = "(&$deleteflag->{filter}$del_filter)";
+            }
+            push(@del_flags, {dn => $deleteflag->{dn}, filter => Net::LDAP::Filter->new($del_filter)});
+        }
     }
 
     my @rldapmap = reverse(@{$conf->{ldapmap}});
@@ -1005,7 +1140,11 @@ sub _do_search
                 my $entry = $msg->entry($j);
                 my $dn = decode('utf8', $entry->dn);
 
-                $dn =~ s/$conf->{nc}$/$self->{suffix}/i;
+                if ($conf->{nc}) {
+                    $dn =~ s/$conf->{nc}$/$self->{suffix}/i;
+                } else {
+                    $dn .= ','.$self->{suffix};
+                }
                 $dn =~ s/\\"/\\22/g;
                 $dn =~ s/\\#/\\23/g;
                 $dn =~ s/#/\\23/g;
@@ -1021,6 +1160,9 @@ sub _do_search
                     next;
                 } else {
                     foreach my $attr ($entry->attributes) {
+                        if (@disable_attrs && grep(/^$attr$/i, @disable_attrs)) {
+                            next;
+                        }
                         if ($attr =~ /^member;range=[0-9]+-([0-9]+)$/i) {
                             my $start = $1 + 1;
                             my $end = $1 + 1500;
@@ -1048,7 +1190,9 @@ sub _do_search
                             }
                             foreach my $value (@values) {
                                 $value = decode('utf8', $value);
-                                $value =~ s/$conf->{nc}$/$self->{suffix}/i;
+                                if ($conf->{nc}) {
+                                    $value =~ s/$conf->{nc}$/$self->{suffix}/i;
+                                }
                                 $entryStr = $entryStr."member: $value\n";
                             }
                             next;
@@ -1063,7 +1207,9 @@ sub _do_search
                                     $entryStr = $entryStr.$attr.":: $value\n";
                                 } else {
                                     $value = decode('utf8', $value);
-                                    $value =~ s/$conf->{nc}$/$self->{suffix}/i;
+                                    if ($conf->{nc}) {
+                                        $value =~ s/$conf->{nc}$/$self->{suffix}/i;
+                                    }
                                     $entryStr = $entryStr.$attr.": $value\n";
                                 }
                             }
@@ -1072,6 +1218,18 @@ sub _do_search
                 }
 
                 if (!$self->_checkEntry($entryStr)) {
+                    next;
+                }
+
+                my $is_deleted = 0;
+                foreach my $del_flag (@del_flags) {
+                    my $del_dn = $del_flag->{dn};
+                    my $del_filter = $del_flag->{filter};
+                    if ($dn =~ /$del_dn/i && $self->parseFilter($del_filter, $entryStr)) {
+                        $is_deleted = 1;
+                    }
+                }
+                if ($is_deleted) {
                     next;
                 }
 

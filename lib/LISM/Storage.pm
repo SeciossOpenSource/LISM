@@ -4,6 +4,7 @@ use strict;
 use LISM::Constant;
 use Digest::MD5;
 use Digest::SHA1;
+use Crypt::CBC;
 use MIME::Base64;
 use POSIX;
 use Encode;
@@ -678,13 +679,20 @@ sub hashPasswd
         return $passwd;
     }
 
-    if ($htype =~ /^(CRYPT|MD5|SHA)$/i && Encode::is_utf8($passwd)) {
+    if ($htype =~ /^(CRYPT|MD5|SHA|SSHA)$/i && Encode::is_utf8($passwd)) {
         $passwd = encode('utf8', $passwd);
     }
 
     # hash the password
     for (my $i = 0; $i < $num; $i++) {
-        if ($htype =~ /^CRYPT$/i) {
+        if ($htype =~ /^SSHA$/i) {
+            if (!$salt) {
+                $salt = Crypt::CBC->random_bytes(4);
+            }
+            my $ctx = Digest::SHA1->new;
+            $ctx->add($passwd.$salt);
+            $hashpw = encode_base64($ctx->digest.$salt);
+        } elsif ($htype =~ /^CRYPT$/i) {
             my @chars = ('a'..'z', 'A'..'Z', '0'..'9');
             if (!$salt) {
                 $salt .= $chars[int(rand($#chars + 1))] for (1..10);
@@ -801,7 +809,7 @@ sub parseFilter
         } else {
             my $substr = decode('utf8', $args->{substrings}[0]{any});
             $substr =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
-            return $entry =~ /^$args->{type};?.*: .*$substr.*$/mi;
+            return $entry =~ /^$args->{type}: .*$substr.*$/mi;
         }
     } elsif ($op eq 'present') {
         return $entry =~ /^$args: /mi;
@@ -1719,7 +1727,7 @@ sub _doPlugin
                     }
 
                     my $level = split(/,/, ($entries[$i] =~ /^dn: (.*),?$self->{suffix}\n/i)[0]);
-                    if (@{$args[0]} == $level &&
+                    if ((defined($plugin->{getall}) || @{$args[0]} == $level) &&
                         $self->parseFilter($args[3], $entries[$i])) {
                         push(@match_keys, ${$keys}[$i]);
                         push(@match_entries, $entries[$i]);
@@ -1772,7 +1780,7 @@ sub _pwdFormat
         my $passwd = $1;
         my ($htype, $otype) = split(/:/, $conf->{hash});
 
-        if ($htype =~ /^CRYPT|MD5|SHA$/i) {
+        if ($htype =~ /^CRYPT|MD5|SHA|SSHA$/i) {
             if ($otype =~ /^hex$/i && $htype =~ /^MD5|SHA$/i) {
                 $passwd = encode_base64(pack("H*", $passwd), '');
             }

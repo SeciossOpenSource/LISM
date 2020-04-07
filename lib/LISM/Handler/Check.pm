@@ -2,9 +2,10 @@ package LISM::Handler::Check;
 
 use strict;
 use base qw(LISM::Handler);
-use POSIX qw(strftime);
+use POSIX qw(strftime ceil);
 use Config::IniFiles;
 use Encode;
+use PHP::Serialization qw(unserialize);
 use LISM::Constant;
 use Data::Dumper;
 
@@ -84,7 +85,7 @@ sub pre_modify
             push(@values, shift @list);
         }
 
-        if ($action eq 'DELETE' && !@values) {
+        if (($action eq 'REPLACE' || $action eq 'DELETE') && !@values) {
             @values = ('');
         } elsif ($action eq 'DELETE') {
             next;
@@ -276,9 +277,9 @@ sub _checkValues
                     my @delvals;
                     my @tmpvals;
                     if ($func eq 'delete') {
-                        @tmpvals = ($oldentry =~ /^$attr: ([^ ]+)$/gmi);
+                        @tmpvals = ($oldentry =~ /^$attr: ([^ \n]+)$/gmi);
                     } else {
-                        @tmpvals = ($entryStr =~ /^$attr: ([^ ]+)$/gmi);
+                        @tmpvals = ($entryStr =~ /^$attr: ([^ \n]+)$/gmi);
                     }
                     if (defined($cattr->{notrule})) {
                         my $notrule = $cattr->{notrule}[0];
@@ -307,8 +308,27 @@ sub _checkValues
                     } else {
                         @addvals = @values;
                     }
+
+                    my @delvals;
+                    if ($func eq 'modify') {
+                        my @tmpvals = ($oldentry =~ /^$attr: ([^ \n]+)$/gmi);
+                        my $notrule;
+                        if (defined($cattr->{notrule})) {
+                            $notrule = $cattr->{notrule}[0];
+                        }
+                        foreach my $value (@tmpvals) {
+                            if ($notrule && $value =~ /$notrule/i) {
+                                next;
+                            }
+                            if ($entryStr !~ /^$attr: $value$/mi) {
+                                push(@delvals, $value);
+                            }
+                        }
+                    }
+                    @delvals = $self->_unique(@delvals);
+
                     my $error;
-                    ($mrc, $error) = $self->_checkMaxEntries($opts, $dn, $attr, @addvals);
+                    ($mrc, $error) = $self->_checkMaxEntries($opts, $dn, $attr, \@addvals, \@delvals);
                     if (!defined($mrc)) {
                         return LDAP_OTHER;
                     } elsif (!$mrc) {
@@ -335,17 +355,27 @@ sub _checkValues
                 }
                 my ($base) = ($dn =~ /($opts->{base})$/i);
 
-                my @vals = $self->_searchLism($opts, $filter, $base);
+                my @vals = $self->_searchLism($opts, undef, $filter, $base);
                 if (defined($opts->{option}) && $opts->{option} =~ /addval=([^&]+)/) {
                     push(@vals, split(/,/, $1));
                 }
+                my $rtrim = defined($opts->{option}) && $opts->{option} =~ /rtrim=([^&]+)/ ? $1 : undef;
                 foreach my $value (@values) {
                     my $regex_val = $value;
                     $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
                     if (!grep(/^$regex_val$/, @vals)) {
-                        $self->_perror("$attr=$value in $dn is invalid: value doesn't exist in entry");
-                        ${$errorp} = "$attr=$value is invalid: value doesn't exist in entry" if ref($errorp);
-                        $rc = LDAP_CONSTRAINT_VIOLATION;
+                        my $invalid = 1;
+                        if ($rtrim) {
+                            $regex_val =~ s/$rtrim$//;
+                            if (grep(/^$regex_val$/, @vals)) {
+                                $invalid = 0;
+                            }
+                        }
+                        if ($invalid) {
+                            $self->_perror("$attr=$value in $dn is invalid: value doesn't exist in entry");
+                            ${$errorp} = "$attr=$value is invalid: value doesn't exist in entry" if ref($errorp);
+                            $rc = LDAP_CONSTRAINT_VIOLATION;
+                        }
                     }
                 }
             }
@@ -367,6 +397,15 @@ sub _checkValues
                     my $regexp = $cattr->{regexp}[0];
                     $regexp = $self->_replaceParam($regexp, %params);
                     if ($value !~ /$regexp/i) {
+                        $self->_perror("$attr=$value in $dn is invalid: regular expression is $regexp");
+                        ${$errorp} = "$attr=$value is invalid: regular expression is $regexp" if ref($errorp);
+                        $rc = LDAP_CONSTRAINT_VIOLATION;
+                    }
+                }
+                if (defined($cattr->{ceregexp})) {
+                    my $regexp = $cattr->{ceregexp}[0];
+                    $regexp = $self->_replaceParam($regexp, %params);
+                    if ($value !~ /$regexp/) {
                         $self->_perror("$attr=$value in $dn is invalid: regular expression is $regexp");
                         ${$errorp} = "$attr=$value is invalid: regular expression is $regexp" if ref($errorp);
                         $rc = LDAP_CONSTRAINT_VIOLATION;
@@ -422,7 +461,7 @@ sub _checkValues
                     if (defined($opts->{filter})) {
                         $filter = $filter ? "(&$filter$opts->{filter})" : $opts->{filter};
                     }
-                    my @vals = $self->_searchLism($opts, $filter, $base);
+                    my @vals = $self->_searchLism($opts, undef, $filter, $base);
                     if (!@vals || !$vals[0]) {
                         $self->_perror("$attr=$value in $dn is invalid: value doesn't exist in data");
                         ${$errorp} = "$attr=$value is invalid: value doesn't exist in data" if ref($errorp);
@@ -447,18 +486,18 @@ sub _checkValues
                     $filter =~ s/\%i/$id/g;
                     $filter =~ s/\%a/$tmpval/g;
                     my ($base) = ($dn =~ /($opts->{base})$/i);
-                    my @vals = $self->_searchLism($opts, $filter, $base);
+                    my @vals = $self->_searchLism($opts, undef, $filter, $base);
                     if (@vals && $vals[0]) {
                         $self->_perror("$attr=$value in $dn is invalid: value already exist in data");
                         ${$errorp} = "$attr=$value is invalid: value already exist in data" if ref($errorp);
                         $rc = LDAP_CONSTRAINT_VIOLATION;
                     }
                 }
-                if (defined($cattr->{pwdpolicy})) {
+                if (defined($cattr->{pwdpolicy}) && $value !~ /^{(CRYPT|MD5|SHA|SSHA)}/) {
                     my ($prc, $error) = $self->_checkPwdPolicy($cattr->{pwdpolicy}[0], $dn, $oldentry, $value);
                     if (!defined($prc)) {
                         return LDAP_OTHER;
-                    } elsif (!$prc) { 
+                    } elsif (!$prc) {
                         $self->_perror("$attr=$value in $dn is invalid: $error");
                         ${$errorp} = "$attr=$value is invalid: $error" if ref($errorp);
                         $rc = LDAP_CONSTRAINT_VIOLATION;
@@ -585,6 +624,16 @@ sub _checkPwdPolicy
             if (@deniedchars) {
                 $pwdpolicy{deniedchars} = \@deniedchars;
             }
+            my ($tmpval) = ($entries[0] =~ /^seciossPwdSerializedData: (.+)$/mi);
+            if ($tmpval) {
+                my $options = unserialize($tmpval);
+                if (defined($options->{pwprohibitattr})) {
+                    $pwdpolicy{prohibitattr} = $options->{'pwprohibitattr'};
+                }
+                if (defined($options->{pwallowlimit})) {
+                    $pwdpolicy{allowlimit} = $options->{'pwallowlimit'};
+                }
+            }
             if (!defined($self->{lism}->{bind}{pwdpolicy})) {
                 $self->{lism}->{bind}{pwdpolicy} = {};
             }
@@ -595,6 +644,7 @@ sub _checkPwdPolicy
                 $pwdpolicy{minlen} = LISM::Handler::_delquote($pwdconfig->val('password', 'pwminlen'));
                 $pwdpolicy{maxlen} = LISM::Handler::_delquote($pwdconfig->val('password', 'pwmaxlen'));
                 $pwdpolicy{inhistory} = LISM::Handler::_delquote($pwdconfig->val('password', 'pwinhistory'));
+                $pwdpolicy{allowlimit} = LISM::Handler::_delquote($pwdconfig->val('password', 'pwallowlimit'));
                 my $tmpval = $pwdconfig->val('password', 'pwallow');
                 my @allowedchars;
                 if (defined($tmpval)) {
@@ -621,6 +671,14 @@ sub _checkPwdPolicy
                     }
                     $pwdpolicy{deniedchars} = \@deniedchars;
                 }
+                $tmpval = $pwdconfig->val('password', 'pwprohibitattr');
+                if (defined($tmpval)) {
+                    $tmpval = LISM::Handler::_delquote($tmpval);
+                    if ($tmpval) {
+                        my @tmpvals = split(/ *, */, $tmpval);
+                        $pwdpolicy{prohibitattr} = \@tmpvals;
+                    }
+                }
                 if (!defined($self->{lism}->{bind}{pwdpolicy})) {
                     $self->{lism}->{bind}{pwdpolicy} = {};
                 }
@@ -638,11 +696,19 @@ sub _checkPwdPolicy
     if ($pwdpolicy{inhistory} && $oldentry && grep(/^$value$/, ($oldentry =~ /^seciossPwdHistory: (.+)$/))) {
         return (0, "password is in the history");
     }
-    if (defined($pwdpolicy{allowedchars})) {
+    if (defined($pwdpolicy{allowedchars}) && $pwdpolicy{allowedchars} && $pwdpolicy{allowedchars}[0] !~ /^ *$/) {
+        my $pwallowlimit = scalar @{$pwdpolicy{allowedchars}};
+        if (defined($pwdpolicy{allowlimit}) && $pwdpolicy{allowlimit}) {
+            $pwallowlimit = int($pwdpolicy{allowlimit});
+        }
+        my $match = 0;
         foreach my $chars (@{$pwdpolicy{allowedchars}}) {
-            if ($chars !~ /^ *$/ && $value !~ /$chars/) {
-                return (0, "password characters are invalid");
+            if ($chars !~ /^ *$/ && $value =~ /$chars/) {
+                $match++;
             }
+        }
+        if ($match < $pwallowlimit) {
+            return (0, "password characters are invalid");
         }
     }
     if (defined($pwdpolicy{deniedchars})) {
@@ -652,15 +718,65 @@ sub _checkPwdPolicy
             }
         }
     }
+    if (defined($pwdpolicy{prohibitattr})) {
+        foreach my $attr (@{$pwdpolicy{prohibitattr}}) {
+            if ($self->_pwdInAttr($value, $attr, $oldentry)) {
+                return (0, "password characters containing $attr");
+            }
+        }
+    }
 
     return 1;
+}
+
+sub _pwdInAttr
+{
+    my $self = shift;
+    my ($password, $attr, $entryStr) = @_;
+
+    my @attrvals = ($entryStr =~ /^$attr: (.+)$/gmi);
+    if (!@attrvals || !defined($attrvals[0]) || $attrvals[0] =~ /^ *$/) {
+        return 0;
+    }
+    my $value = $attrvals[0];
+    if ($attr eq 'uid' || $attr eq 'mail' || $attr eq 'seciossnotificationmail') {
+        if ($value =~ /^([^@]+)@/) {
+            $value  = $1;
+        }
+    } elsif ($attr eq 'seciosstelephonenumber' || $attr eq 'seciossfax' || $attr eq 'seciossmobile' || $attr eq 'seciosshomephone' || $attr eq 'pager') {
+        $value =~ s/[\s\-\+\*#]//g;
+    } elsif ($attr eq 'cn') {
+        if ($self->_pwdInAttr($password, 'sn', $entryStr)) {
+            return 1;
+        }
+        if ($self->_pwdInAttr($password, 'givenname', $entryStr)) {
+            return 1;
+        }
+        return 0;
+    }
+
+    my $pattern = quotemeta $value;
+    if ($password =~ /$pattern/i) {
+        return 1;
+    }
+    if ($attr ne 'uid' && length($value) > 4) {
+        for (my $i = 0; $i <= (length($value) - 4); $i++) {
+            $pattern = quotemeta substr($value, $i, 4);
+            if ($password =~ /$pattern/i) {
+                return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 sub _checkMaxEntries
 {
     my $self = shift;
-    my ($opts, $dn, $attr, @values) = @_;
+    my ($opts, $dn, $attr, $addvalsp, $delvalsp) = @_;
     my $conf = $self->{_config};
+    my @values = $addvalsp ? @{$addvalsp} : ();
+    my @delvals = $delvalsp ? @{$delvalsp} : ();
 
     my ($base) = ($dn =~ /($opts->{dn})/i);
     if (!$base) {
@@ -676,11 +792,76 @@ sub _checkMaxEntries
     if (@entries) {
         my $checkEntry = $entries[0];
         if ($attr) {
+            my $checked = 0;
+            if (defined($opts->{license})) {
+                my @services;
+                if (defined($opts->{service})) {
+                    my $serviceattr = $opts->{service};
+                    @services = ($checkEntry =~ /^$serviceattr: (.+)$/gmi);
+                }
+                my $licenseattr = $opts->{license};
+                my ($plan) = ($checkEntry =~ /^$licenseattr: (.+)$/mi);
+                if ($plan && defined($opts->{plan}) && defined($opts->{plan}{$plan})) {
+                    my $spval = defined($opts->{sp}) ? $opts->{sp} : '';
+                    my $named = defined($opts->{plan}{$plan}->{named}) ? $opts->{plan}{$plan}->{named} : 0;
+                    my $sp = defined($opts->{plan}{$plan}->{sp}) ? $opts->{plan}{$plan}->{sp} : 0;
+                    my $maxattr = $opts->{max};
+                    $maxattr =~ s/;.+//;
+                    my $namedattr = $opts->{current};
+                    $namedattr =~ s/\%a/(.*)/;
+                    my $spattr = $opts->{current};
+                    if ($spval) {
+                        $spattr =~ s/\%a/$spval/;
+                    }
+                    my ($max) = ($checkEntry =~ /^$maxattr: (.*)$/mi);
+                    my $namednum = 0;
+                    my $spnum = 0;
+                    foreach my $line (split(/\n/, $checkEntry)) {
+                        if ($spval && $line =~ /^$spattr: (.+)$/mi) {
+                            $spnum += $1;
+                        } elsif ($line =~ /^$namedattr: (.+)$/mi) {
+                            my $service = $1;
+                            if (!@services || grep(/^$service$/i, @services)) {
+                                $namednum += $2;
+                            }
+                        }
+                    }
+                    foreach my $value (@values) {
+                        if ($value =~ /^ *$/) {
+                            next;
+                        }
+                        if ($spval && $value =~ /$spval/) {
+                            $spnum++;
+                        } elsif (!@services || grep(/^$value$/i, @services)) {
+                            $namednum++;
+                        }
+                    }
+                    foreach my $value (@delvals) {
+                        if ($value =~ /^ *$/) {
+                            next;
+                        }
+                        if ($spval && $value =~ /$spval/) {
+                            $spnum--;
+                        } elsif (!@services || grep(/^$value$/i, @services)) {
+                            $namednum--;
+                        }
+                    }
+                    if ($max && ($named ? ceil($namednum / $named) : 0) + ($sp ? ceil($spnum / $sp) : 0) > $max) {
+                        return (0, "$maxattr=$max");
+                    }
+                    $checked = 1;
+                }
+            }
+
             undef($opts->{increment});
             $opts->{increment} = {};
+            my $rtrim = defined($opts->{rtrim}) ? $opts->{rtrim} : undef;
             foreach my $value (@values) {
                 if ($value =~ /^ *$/) {
                     next;
+                }
+                if ($rtrim) {
+                    $value =~ s/$rtrim$//;
                 }
 
                 my $maxattr = $opts->{max};
@@ -689,15 +870,12 @@ sub _checkMaxEntries
                 $currentattr =~ s/\%a/$value/;
                 my ($max) = ($checkEntry =~ /^$maxattr: (.*)$/mi);
                 my ($current) = ($checkEntry =~ /^$currentattr: (.*)$/mi);
-                if (!defined($max)) {
-                    return 1;
-                }
                 my $service = $value;
                 if (!defined($opts->{increment}->{$service})) {
                     $opts->{increment}->{$service} = 0;
                 }
                 $opts->{increment}->{$service}++;
-                if ($current + $opts->{increment}->{$service} > $max) {
+                if (!$checked && $max && $current + $opts->{increment}->{$service} > $max) {
                     return (0, "$maxattr=$max");
                 }
             }
@@ -752,7 +930,11 @@ sub _updateCurrentEntries
                     }
                 }
                 if (($func eq 'modify' || $func eq 'delete') && @delvals && $delvals[0] !~ /^ *$/) {
+                    my $rtrim = defined($opts->{rtrim}) ? $opts->{rtrim} : undef;
                     foreach my $value (@delvals) {
+                        if ($rtrim) {
+                            $value =~ s/$rtrim$//;
+                        }
                         my $service = $value;
                         if (defined($currentvals{$service})) {
                             $currentvals{$service}--;
@@ -912,6 +1094,10 @@ sub _checkConfig
                     if (!defined($maxentries->{dn}) || !defined($maxentries->{max}) || !defined($maxentries->{current})) {
                         $self->log(level => 'alert', message => "Set dn,max,current,check in maxentries");
                         return 1;
+                    }
+                } elsif (defined($rule->{attr}{$cattr}->{pwdpolicy})) {
+                    if (defined($rule->{attr}{$cattr}->{pwdpolicy}[0]->{filter})) {
+                        $rule->{attr}{$cattr}->{pwdpolicy}[0]->{filter} =~ s/&amp;/&/g;
                     }
                 }
             }
