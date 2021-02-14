@@ -74,7 +74,9 @@ suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下�
     changetype: add
     objectClass: organization
     objectClass: seciossTenant
+    objectClass: seciossPwdPolicy
     o: System
+    pwdAttribute: 2.5.4.35
     
     dn: ou=People,dc=example,dc=com
     changetype: add
