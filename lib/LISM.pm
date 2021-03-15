@@ -972,6 +972,17 @@ sub _lismConfig
             } else {
                 $self->{master}->{backup} = ();
             }
+
+            if (defined($sync->{master}[0]->{member})) {
+                if (!defined($sync->{master}[0]->{member}[0]->{attr})) {
+                    $self->log(level => 'alert', message => "member attr must be set");
+                    return 1;
+                }
+                if (defined($sync->{master}[0]->{member}[0]->{groupattr})) {
+                    my @attrs = split(/, */, $sync->{master}[0]->{member}[0]->{groupattr});
+                    $sync->{master}[0]->{member}[0]->{groupattr_list} = \@attrs;
+                }
+            }
         }
 
         foreach my $dname (keys %{$sync->{data}}) {
@@ -2369,6 +2380,7 @@ sub _doSync
 
     my $entryStr;
     my $newEntryStr;
+    my %group_entries;
     if ($func eq 'add') {
         $entryStr = $info[0];
     } else {
@@ -2387,6 +2399,38 @@ sub _doSync
                 return LDAP_NO_SUCH_OBJECT;
             }
             ($entryStr = $entries[0]) =~ s/^dn:.*\n//;
+        }
+    }
+    if ($func eq 'modify') {
+        if (defined($conf->{sync}[0]->{master}[0]->{member})) {
+            my $match;
+            if (defined($conf->{sync}[0]->{master}[0]->{member}[0]->{match})) {
+                $match = $conf->{sync}[0]->{master}[0]->{member}[0]->{match};
+            }
+            if (!$match || $dn =~ /$match/i) {
+                my ($rc, @entries) = $self->_do_search($dn, 0, 0, 0, $timeout, '(objectClass=*)', 0, 'memberOf');
+                if ($rc) {
+                    $self->log(level => 'err', message => "Searching $dn failed($rc)");
+                } else {
+                    my @memberof = ($entries[0] =~ /^memberOf: (.+)/gmi);
+                    if (@memberof) {
+                        my @attrs;
+                        if (defined($conf->{sync}[0]->{master}[0]->{member}[0]->{groupattr})) {
+                            @attrs = @{$conf->{sync}[0]->{master}[0]->{member}[0]->{groupattr_list}};
+                        }
+                        foreach my $group_dn (@memberof) {
+                            my $group_entry;
+                            ($rc, $group_entry) = $self->_do_search($group_dn, 0, 0, 0, $timeout, '(objectClass=*)', 0, @attrs);
+                            if ($rc) {
+                                $self->log(level => 'err', message => "Getting synchronized entry($group_dn) failed: error code($rc)");
+                                next;
+                            }
+                            $group_entry =~ s/^dn:.*\n//;
+                            $group_entries{$group_dn} = $group_entry;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -2411,6 +2455,7 @@ sub _doSync
             next;
         }
 
+        my $sync_member = 0;
         my $dfunc = $func;
         my ($ddn, @dinfo) = $self->_checkSyncData($dname, 'realtime', $entryStr, $dfunc, $dn, @info);
         if ($dname ne 'Task' && $dfunc eq 'modify') {
@@ -2453,6 +2498,7 @@ sub _doSync
                 if ($newdn && !$ddn) {
                     $dfunc = 'add';
                     ($ddn, @dinfo) = $self->_checkSyncData($dname, 'realtime', $newEntryStr, $dfunc, $dn, $newEntryStr);
+                    $sync_member = 1;
                 } elsif (!$newdn && $ddn) {
                     $dfunc = 'delete';
                     @dinfo = ();
@@ -2504,6 +2550,23 @@ sub _doSync
             $self->_writeSyncFail($dfunc, $dname, $ddn, @dinfo);
         } else {
             push(@updated, $dname);
+        }
+
+        if ($sync_member && %group_entries) {
+            my $member_attr = $conf->{sync}[0]->{master}[0]->{member}[0]->{attr};
+            foreach my $group_dn (keys(%group_entries)) {
+                my $group_entry = $group_entries{$group_dn};
+                my @group_info;
+                my ($group_ddn, @group_info) = $self->_checkSyncData($dname, 'realtime', $group_entry, 'modify', $group_dn, 'ADD', $member_attr, $dn);
+                if (!$group_ddn || !@group_info) {
+                    next;
+                }
+
+                my $rc2 = $self->_doUpdate('modify', undef, 0, undef, $group_ddn, 'ADD', $group_info[1], $group_info[2]);
+                if ($rc2) {
+                    $self->log(level => 'err', message => "Synchronizing member($group_info[2]) of $group_ddn in $dname failed: error code($rc2)");
+                }
+            }
         }
     }
 
@@ -2841,6 +2904,7 @@ sub _getSyncInfo
                             $nosync_data{$dname} = 1;
                             $nosync_entries{'sync'}{$dn} = "The entry shoud move to \"$subdn,$dbase\" in cluster";
                         } elsif (defined($sobject->{idmap})) {
+                            $dn = "$key,$dbase";
                             $mentry->{entryStr} =~ s/$master->{suffix}$/$data->{suffix}/gmi;
                             if (defined($sobject->{syncattrs})) {
                                 my $entryStr = '';
@@ -2848,12 +2912,42 @@ sub _getSyncInfo
                                     if ($attr =~ /^userpassword$/i) {
                                         next;
                                     }
+
+                                    my $sattr;
+                                    foreach (my $j = 0; $j < @{$sobject->{syncattrs}}; $j++) {
+                                        if ($attr eq ${$sobject->{syncattrs}}[$j]) {
+                                            $sattr = $sobject->{syncattr}[$j];
+                                        }
+                                    }
+
                                     my @vals = ($mentry->{entryStr} =~ /^$attr: (.*)$/gmi);
                                     if (@vals) {
                                         foreach my $val (@vals) {
-                                            if ($val !~ /^ *$/) {
-                                                $entryStr .= "$attr: $val\n";
+                                            if ($val =~ /^ *$/) {
+                                                next;
                                             }
+                                            if ($sattr && defined($sattr->{memberfilter})) {
+                                                my $match = 0;
+                                                foreach my $memberfilter (@{$sattr->{memberfilter}}) {
+                                                    if (!defined($memberfilter->{dn}) || $val =~ /$memberfilter->{dn}/i) {
+                                                        if (!defined($memberfilter->{filter})) {
+                                                            $match = 1;
+                                                            last;
+                                                        }
+                                                        my ($rc2, $entry2) = $self->_do_search($val, 0, 0, 1, 0, $memberfilter->{filter}, 0, 'objectClass');
+                                                        if (!$rc2 && $entry2) {
+                                                            $match = 1;
+                                                            last;
+                                                        } elsif ($rc2) {
+                                                            $self->log(level => 'err', message => "Checking member $val failed by $memberfilter->{filter} : $rc2");
+                                                        }
+                                                    }
+                                                }
+                                                if (!$match) {
+                                                    next;
+                                                }
+                                            }
+                                            $entryStr .= "$attr: $val\n";
                                         }
                                     }
                                 }
@@ -2919,7 +3013,12 @@ sub _getSyncInfo
                                     next;
                                 }
 
-                                @values = $self->_getAttrValues($mentry->{entryStr}, $attr);
+                                @values = ();
+                                foreach my $value ($self->_getAttrValues($mentry->{entryStr}, $attr)) {
+                                    if ($value && $value !~ /^ *$/) {
+                                        push(@values, $value);
+                                    }
+                                }
                                 if (defined($sattr->{option}) && grep(/^notnull$/, @{$sattr->{option}}) && !@values) {
                                     next
                                 }
@@ -2927,7 +3026,12 @@ sub _getSyncInfo
                                 my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
                                 my $pvals = join(";", sort {lc $a cmp lc $b} @sync_vals);
 
-                                @values = $self->_getAttrValues($entries[$i], $sync_attr);
+                                @values = ();
+                                foreach my $value ($self->_getAttrValues($entries[$i], $sync_attr)) {
+                                    if ($value && $value !~ /^ *$/) {
+                                        push(@values, $value);
+                                    }
+                                }
                                 my ($synced_vals, $left_vals) = $self->_checkSyncedAttrs($data, $master, $sattr, @values);
                                 my $dvals = join(";", sort {lc $a cmp lc $b} @{$synced_vals});
 
@@ -3614,6 +3718,7 @@ sub _setSyncInfo
                             }
                         } elsif (defined($sobject->{idmap})) {
                             my @modlist;
+                            $dn = "$key,$dbase";
                             $mentry->{entryStr} =~ s/$master->{suffix}$/$data->{suffix}/gmi;
                             if (defined($sobject->{syncattrs})) {
                                 my $entryStr = '';
@@ -3622,13 +3727,43 @@ sub _setSyncInfo
                                         next;
                                     }
                                     push(@modlist, 'REPLACE', $attr);
+
+                                    my $sattr;
+                                    foreach (my $j = 0; $j < @{$sobject->{syncattrs}}; $j++) {
+                                        if ($attr eq ${$sobject->{syncattrs}}[$j]) {
+                                            $sattr = $sobject->{syncattr}[$j];
+                                        }
+                                    }
+
                                     my @vals = ($mentry->{entryStr} =~ /^$attr: (.*)$/gmi);
                                     if (@vals) {
                                         foreach my $val (@vals) {
-                                            if ($val !~ /^ *$/) {
-                                                $entryStr .= "$attr: $val\n";
-                                                push(@modlist, $val);
+                                            if ($val =~ /^ *$/) {
+                                                next;
                                             }
+                                            if ($sattr && defined($sattr->{memberfilter})) {
+                                                my $match = 0;
+                                                foreach my $memberfilter (@{$sattr->{memberfilter}}) {
+                                                    if (!defined($memberfilter->{dn}) || $val =~ /$memberfilter->{dn}/i) {
+                                                        if (!defined($memberfilter->{filter})) {
+                                                            $match = 1;
+                                                            last;
+                                                        }
+                                                        my ($rc2, $entry2) = $self->_do_search($val, 0, 0, 1, 0, $memberfilter->{filter}, 0, 'objectClass');
+                                                        if (!$rc2 && $entry2) {
+                                                            $match = 1;
+                                                            last;
+                                                        } elsif ($rc2) {
+                                                            $self->log(level => 'err', message => "Checking member $val failed by $memberfilter->{filter} : $rc2");
+                                                        }
+                                                    }
+                                                }
+                                                if (!$match) {
+                                                    next;
+                                                }
+                                            }
+                                            $entryStr .= "$attr: $val\n";
+                                            push(@modlist, $val);
                                         }
                                     }
                                 }
@@ -3726,7 +3861,12 @@ sub _setSyncInfo
                                     next;
                                 }
 
-                                @values = $self->_getAttrValues($mentry->{entryStr}, $attr);
+                                @values = ();
+                                foreach my $value ($self->_getAttrValues($mentry->{entryStr}, $attr)) {
+                                    if ($value && $value !~ /^ *$/) {
+                                        push(@values, $value);
+                                    }
+                                }
                                 if (defined($sattr->{option}) && grep(/^notnull$/, @{$sattr->{option}}) && !@values) {
                                     next
                                 }
@@ -3734,7 +3874,12 @@ sub _setSyncInfo
                                 my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
                                 my $pvals = join(";", sort {lc $a cmp lc $b} @sync_vals);
 
-                                @values = $self->_getAttrValues($entries[$i], $sync_attr);
+                                @values = ();
+                                foreach my $value ($self->_getAttrValues($entries[$i], $sync_attr)) {
+                                    if ($value && $value !~ /^ *$/) {
+                                        push(@values, $value);
+                                    }
+                                }
                                 my ($synced_vals, $left_vals) = $self->_checkSyncedAttrs($data, $master, $sattr, @values);
                                 my $dvals = join(";", sort {lc $a cmp lc $b} @{$synced_vals});
 
@@ -4873,7 +5018,7 @@ sub _checkSyncData
                 push(@values, shift @tmp);
             }
 
-            if (defined($attrmap{$attr})) {
+            if (defined($attrmap{$attr}) && $attrmap{$attr} !~ /^$attr$/i) {
                 next;
             }
 

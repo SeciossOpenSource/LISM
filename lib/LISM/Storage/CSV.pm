@@ -342,7 +342,7 @@ sub _objSearch
                 $rc = LDAP_OPERATIONS_ERROR;
             }
         }
-    } 
+    }
 
     return ($rc , \@match_keys, @match_entries);
 }
@@ -614,7 +614,7 @@ sub _objModify
                             $self->log(level => 'err', message => "Can't get id of $attr values in the file");
                             $rc = LDAP_OTHER;
                             last DO;
-                        } 
+                        }
                         @values = @keys;
                     }
 

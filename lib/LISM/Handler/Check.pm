@@ -155,7 +155,7 @@ sub post_modify
         } elsif ($action eq 'REPLACE') {
             foreach my $value ($oldentry =~ /^$attr: (.+)$/gmi) {
                 my $tmpval = $value;
-                $tmpval =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                $tmpval =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                 if (!grep(/^$tmpval$/i, @values)) {
                     $entryStr .= "$attr: $value\n";
                 }
@@ -268,6 +268,12 @@ sub _checkValues
                         next;
                     }
                 }
+                if (defined($cattr->{rule})) {
+                    my $rule = $cattr->{rule}[0];
+                    if ($value !~ /$rule/i) {
+                        next;
+                    }
+                }
                 push(@values, $value);
             }
             if (defined($cattr->{maxentries})) {
@@ -285,6 +291,14 @@ sub _checkValues
                         my $notrule = $cattr->{notrule}[0];
                         foreach my $value (@tmpvals) {
                             if ($value =~ /$notrule/i) {
+                                next;
+                            }
+                            push(@delvals, $value);
+                        }
+                    } elsif (defined($cattr->{rule})) {
+                        my $rule = $cattr->{rule}[0];
+                        foreach my $value (@tmpvals) {
+                            if ($value !~ /$rule/i) {
                                 next;
                             }
                             push(@delvals, $value);
@@ -313,11 +327,18 @@ sub _checkValues
                     if ($func eq 'modify') {
                         my @tmpvals = ($oldentry =~ /^$attr: ([^ \n]+)$/gmi);
                         my $notrule;
+                        my $rule;
                         if (defined($cattr->{notrule})) {
                             $notrule = $cattr->{notrule}[0];
                         }
+                        if (defined($cattr->{rule})) {
+                            $rule = $cattr->{rule}[0];
+                        }
                         foreach my $value (@tmpvals) {
                             if ($notrule && $value =~ /$notrule/i) {
+                                next;
+                            }
+                            if ($rule && $value !~ /$rule/i) {
                                 next;
                             }
                             if ($entryStr !~ /^$attr: $value$/mi) {
@@ -362,7 +383,7 @@ sub _checkValues
                 my $rtrim = defined($opts->{option}) && $opts->{option} =~ /rtrim=([^&]+)/ ? $1 : undef;
                 foreach my $value (@values) {
                     my $regex_val = $value;
-                    $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                    $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                     if (!grep(/^$regex_val$/, @vals)) {
                         my $invalid = 1;
                         if ($rtrim) {
@@ -422,7 +443,7 @@ sub _checkValues
                 }
                 if (defined($cattr->{entryunique})) {
                     my $tmpval = $value;
-                    $tmpval =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                    $tmpval =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                     foreach my $uattr (split(/, */, $cattr->{entryunique}[0])) {
                         my $match = 0;
                         if ($entryStr =~ /^$uattr: /mi) {
@@ -494,13 +515,19 @@ sub _checkValues
                     }
                 }
                 if (defined($cattr->{pwdpolicy}) && $value !~ /^{(CRYPT|MD5|SHA|SSHA)}/) {
-                    my ($prc, $error) = $self->_checkPwdPolicy($cattr->{pwdpolicy}[0], $dn, $oldentry, $value);
-                    if (!defined($prc)) {
-                        return LDAP_OTHER;
-                    } elsif (!$prc) {
-                        $self->_perror("$attr=$value in $dn is invalid: $error");
-                        ${$errorp} = "$attr=$value is invalid: $error" if ref($errorp);
-                        $rc = LDAP_CONSTRAINT_VIOLATION;
+                    my $notmatch;
+                    if (defined($cattr->{pwdpolicy}[0]->{notmatch})) {
+                        $notmatch = $cattr->{pwdpolicy}[0]->{notmatch};
+                    }
+                    if (!$notmatch || $entryStr !~ /$notmatch/mi) {
+                        my ($prc, $error) = $self->_checkPwdPolicy($cattr->{pwdpolicy}[0], $dn, $newentry, $oldentry, $value);
+                        if (!defined($prc)) {
+                            return LDAP_OTHER;
+                        } elsif (!$prc) {
+                            $self->_perror("$attr=$value in $dn is invalid: $error");
+                            ${$errorp} = "$attr=$value is invalid: $error" if ref($errorp);
+                            $rc = LDAP_CONSTRAINT_VIOLATION;
+                        }
                     }
                 }
             }
@@ -515,10 +542,10 @@ sub _replaceParam
     my $self = shift;
     my ($str, %params) = @_;
 
-    my @keys = ($str =~ /\%{([^}]+)}/g);
+    my @keys = ($str =~ /\%\{([^}]+)\}/g);
     foreach my $key (@keys) {
         my $value = defined($params{$key}) ? $params{$key} : '';
-        $str =~ s/\%{$key}/$value/g;
+        $str =~ s/\%\{$key\}/$value/g;
     }
 
     return $str;
@@ -594,7 +621,7 @@ sub _getParam
 sub _checkPwdPolicy
 {
     my $self = shift;
-    my ($opts, $dn, $oldentry, $value) = @_;
+    my ($opts, $dn, $entryStr, $oldentry, $value) = @_;
 
     my ($base) = ($dn =~ /($opts->{base})/i);
     if (!$base) {
@@ -602,7 +629,57 @@ sub _checkPwdPolicy
     }
 
     my %pwdpolicy;
-    if (defined($self->{lism}->{bind}{pwdpolicy}{$base})) {
+    if (defined($opts->{profile})) {
+        my $profile_attr = $opts->{profile};
+        my @profiles = ($entryStr =~ /^$profile_attr: ([^ ]+)$/gmi);
+        my $max_priority = 0;
+        foreach my $profile_dn (@profiles) {
+            my ($rc, $profile_entry) = $self->{lism}->search($profile_dn, 0, 0, 0, 0, '(objectClass=*)', 0);
+            if ($rc) {
+                $self->log(level => 'err', message => "searching profile($profile_dn) failed($rc)");
+                next;
+            } elsif ($profile_entry) {
+                if ($profile_entry !~ /^seciossPwdPolicyEnabled: TRUE$/mi) {
+                    next;
+                }
+                my ($priority) = ($profile_entry =~ /^seciossRoleSpecification: (.+)$/mi);
+                if ($priority > $max_priority) {
+                    $max_priority = $priority;
+                } else {
+                    next;
+                }
+
+                ($pwdpolicy{minlen}) = ($profile_entry =~ /^pwdMinLength: (.*)$/mi);
+                ($pwdpolicy{maxlen}) = ($profile_entry =~ /^seciossPwdMaxLength: (.*)$/mi);
+                ($pwdpolicy{inhistory}) = ($profile_entry =~ /^pwdInHistory: (.*)$/mi);
+                my @allowedchars = ($profile_entry =~ /^seciossPwdAllowedChars: (.+)$/gmi);
+                if (@allowedchars) {
+                    $pwdpolicy{allowedchars} = \@allowedchars;
+                }
+                my @deniedchars = ($profile_entry =~ /^seciossPwdDeniedChars: (.+)$/gmi);
+                if (@deniedchars) {
+                    $pwdpolicy{deniedchars} = \@deniedchars;
+                }
+                my ($tmpval) = ($profile_entry =~ /^seciossPwdSerializedData: (.+)$/mi);
+                if ($tmpval) {
+                    my $options = unserialize($tmpval);
+                    if (defined($options->{pwprohibitattr})) {
+                        $pwdpolicy{prohibitattr} = $options->{'pwprohibitattr'};
+                    }
+                    if (defined($options->{pwallowlimit})) {
+                        $pwdpolicy{allowlimit} = $options->{'pwallowlimit'};
+                    }
+                }
+                if (!defined($self->{lism}->{bind}{pwdpolicy})) {
+                    $self->{lism}->{bind}{pwdpolicy} = {};
+                }
+                $self->{lism}->{bind}{pwdpolicy}{$base} = \%pwdpolicy;
+            }
+        }
+    }
+    if (%pwdpolicy) {
+        # profile password policy
+    } elsif (defined($self->{lism}->{bind}{pwdpolicy}{$base})) {
         %pwdpolicy = %{$self->{lism}->{bind}{pwdpolicy}{$base}};
     } else {
         my $filter = defined($opts->{filter}) ? $opts->{filter} : '(objectClass=*)';
@@ -793,6 +870,7 @@ sub _checkMaxEntries
         my $checkEntry = $entries[0];
         if ($attr) {
             my $checked = 0;
+            my $spval;
             if (defined($opts->{license})) {
                 my @services;
                 if (defined($opts->{service})) {
@@ -802,7 +880,7 @@ sub _checkMaxEntries
                 my $licenseattr = $opts->{license};
                 my ($plan) = ($checkEntry =~ /^$licenseattr: (.+)$/mi);
                 if ($plan && defined($opts->{plan}) && defined($opts->{plan}{$plan})) {
-                    my $spval = defined($opts->{sp}) ? $opts->{sp} : '';
+                    $spval = defined($opts->{sp}) ? $opts->{sp} : '';
                     my $named = defined($opts->{plan}{$plan}->{named}) ? $opts->{plan}{$plan}->{named} : 0;
                     my $sp = defined($opts->{plan}{$plan}->{sp}) ? $opts->{plan}{$plan}->{sp} : 0;
                     my $maxattr = $opts->{max};
@@ -860,7 +938,7 @@ sub _checkMaxEntries
                 if ($value =~ /^ *$/) {
                     next;
                 }
-                if ($rtrim) {
+                if ((!$spval || $value !~ /$spval/) && $rtrim) {
                     $value =~ s/$rtrim$//;
                 }
 
@@ -930,9 +1008,10 @@ sub _updateCurrentEntries
                     }
                 }
                 if (($func eq 'modify' || $func eq 'delete') && @delvals && $delvals[0] !~ /^ *$/) {
+                    my $spval = defined($opts->{sp}) ? $opts->{sp} : '';
                     my $rtrim = defined($opts->{rtrim}) ? $opts->{rtrim} : undef;
                     foreach my $value (@delvals) {
-                        if ($rtrim) {
+                        if ((!$spval || $value !~ /$spval/) && $rtrim) {
                             $value =~ s/$rtrim$//;
                         }
                         my $service = $value;

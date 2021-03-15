@@ -441,8 +441,11 @@ sub replaceAttrVals
             $values[$i] =~ s/$match/$substitute/i;
         }
     }
-
-    return @values;
+    if (@values == 1) {
+       return $values[0];
+    } else {
+       return @values;
+    }
 }
 
 1;

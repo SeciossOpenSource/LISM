@@ -1686,7 +1686,7 @@ sub _funcParse
     my $self = shift;
     my ($str, $dn, $entryStr) = @_;
 
-    my @funcs = ($str =~ /%{([^}]*)}/g);
+    my @funcs = ($str =~ /%\{([^}]*)\}/g);
     foreach my $func (@funcs) {
         my $value;
 
@@ -1696,7 +1696,7 @@ sub _funcParse
         }
 
         $func =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
-        $str =~ s/%{$func}/$value/;
+        $str =~ s/%\{$func\}/$value/;
     }
 
     return $str;

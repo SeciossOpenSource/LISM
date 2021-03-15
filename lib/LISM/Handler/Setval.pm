@@ -90,7 +90,7 @@ sub pre_add
                 my @values = $self->_getStaticValue($entry->{addition}{$attr}, ${$dnp}, ${$entryStrp}[0]);
                 foreach my $value (@values) {
                     my $tmpval = $value;
-                    $tmpval =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                    $tmpval =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                     if (${$entryStrp}[0] !~ /^$attr:{1,2} $tmpval/mi) {
                         ${$entryStrp}[0] = "${$entryStrp}[0]$attr: $value\n";
                     }
@@ -242,7 +242,7 @@ sub _checkConfig
             if (defined($entry->{default})) {
                 foreach my $attr (keys %{$entry->{default}}) {
                     # check type of value
-                    if (defined($entry->{default}{$attr}->{value}) && 
+                    if (defined($entry->{default}{$attr}->{value}) &&
                         !ref($entry->{default}{$attr}->{value}[0])) {
                         $self->log(level => 'alert', message => "type of setval default value doesn't exist");
                         return 1;
@@ -264,7 +264,7 @@ sub _checkConfig
             if (defined($entry->{addition})) {
                 foreach my $attr (keys %{$entry->{addition}}) {
                     # check type of value
-                    if (defined($entry->{addition}{$attr}->{value}) && 
+                    if (defined($entry->{addition}{$attr}->{value}) &&
                         !ref($entry->{addition}{$attr}->{value}[0])) {
                         $self->log(level => 'alert', message => "type of setval addition value doesn't exist");
                         return 1;
@@ -289,7 +289,7 @@ sub _getStaticValue
             my @vals;
 
             if ($static->{value}[$i]->{type} eq 'function') {
-                eval "\@vals = $static->{value}[0]->{content}";
+                eval "\@vals = $static->{value}[$i]->{content}";
                 if ($@) {
                     $self->log(level => 'err', message => "setval $static->{value}[0]->{content} failed: $@");
                 }

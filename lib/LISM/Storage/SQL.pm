@@ -287,17 +287,19 @@ sub _objSearch
 
     DO: {
         # get data of the entries
+        my $table = $oconf->{table}[0];
+        $table =~ s/^[^.]+\.//;
         my $sql = "";
         if (defined($oconf->{nodistinct}) && $oconf->{nodistinct}[0] eq "on") {
-            $sql = "select $oconf->{table}[0].$oconf->{id}[0]->{column}[0]";
+            $sql = "select $table.$oconf->{id}[0]->{column}[0]";
         } else {
-            $sql = "select distinct $oconf->{table}[0].$oconf->{id}[0]->{column}[0]";
+            $sql = "select distinct $table.$oconf->{id}[0]->{column}[0]";
         }
         foreach my $attr ('objectclass', keys %{$oconf->{attr}}) {
             if (!defined($oconf->{attr}{$attr}) || !defined($oconf->{attr}{$attr}->{column})) {
                 next;
             }
-            $sql = "$sql, $oconf->{table}[0].$oconf->{attr}{$attr}->{column}[0]";
+            $sql = "$sql, $table.$oconf->{attr}{$attr}->{column}[0]";
         }
 
         # exchange the LDAP filter to SQL
@@ -316,8 +318,10 @@ sub _objSearch
 
             if ($oconf->{table}[0] ne $poconf->{table}[0]) {
                 my $idquote = !defined($poconf->{id}[0]->{type}) || $poconf->{id}[0]->{type}[0] !~ /^(int|smallint|float|number|text|boolean)$/i ? "'" : '';
+                my $ptable = $poconf->{table}[0];
+                $ptable =~ s/^[^.]+\.//;
                 $from = "$from, $poconf->{table}[0]";
-                $where = "$where and $poconf->{table}[0].$poconf->{id}[0]->{column}[0] ".(defined($pkey) ? "= $idquote$pkey$idquote" : "is NULL");
+                $where = "$where and $ptable.$poconf->{id}[0]->{column}[0] ".(defined($pkey) ? "= $idquote$pkey$idquote" : "is NULL");
             }
 
             if (defined($oconf->{container}[0]->{fromtbls})) {
@@ -1168,7 +1172,9 @@ sub _getParentRdn
         return $poconf->{entry}[0]->{rdn}[0];
     }
 
-    $selexpr = "$poconf->{table}[0].$poconf->{id}[0]->{column}[0],$poconf->{table}[0].$poconf->{attr}{$poconf->{rdn}[0]}->{column}[0]";
+    my $ptable = $poconf->{table}[0];
+    $ptable =~ s/^[^.]+\.//;
+    $selexpr = "$ptable.$poconf->{id}[0]->{column}[0],$ptable.$poconf->{attr}{$poconf->{rdn}[0]}->{column}[0]";
 
     $from = $oconf->{table}[0];
     if ($from ne $poconf->{table}[0]) {
@@ -1178,12 +1184,14 @@ sub _getParentRdn
         $from = "$from,$oconf->{container}[0]->{fromtbls}[0]";
     }
 
+    my $otable = $oconf->{table}[0];
+    $otable =~ s/^[^.]+\.//;
     my $idquote = !defined($oconf->{id}[0]->{type}) || $oconf->{id}[0]->{type}[0] !~ /^(int|smallint|float|number|text|boolean)$/i ? "'" : '';
-    $where = "$oconf->{table}[0].$oconf->{id}[0]->{column}[0] = $idquote$key$idquote";
+    $where = "$otable.$oconf->{id}[0]->{column}[0] = $idquote$key$idquote";
     if (defined($oconf->{container}[0]->{joinwhere})) {
         if ($oconf->{container}[0]->{joinwhere}[0] =~ /\%c/) {
             my ($pidcol) = ($oconf->{container}[0]->{joinwhere}[0] =~ /([^ ]+) *= *'?\%c'?/);
-            $where = "$poconf->{table}[0].$poconf->{id}[0]->{column}[0] = (select $pidcol from $oconf->{table}[0] where $where)";
+            $where = "$ptable.$poconf->{id}[0]->{column}[0] = (select $pidcol from $oconf->{table}[0] where $where)";
         } else {
             $where = "$where and $oconf->{container}[0]->{joinwhere}[0]";
         }
@@ -1225,14 +1233,18 @@ sub _getAttrValues
     my $where;
 
     $from = $oconf->{table}[0];
+    my $otable = $oconf->{table}[0];
+    $otable =~ s/^[^.]+\.//;
     if (defined($oconf->{attr}{$attr}->{oname})) {
         $aobj = $self->{object}{$oconf->{attr}{$attr}->{oname}[0]};
         $aoconf = $aobj->{conf};
-        $selexpr = "$aoconf->{table}[0].$aoconf->{id}[0]->{column}[0]";
+        my $atable = $aoconf->{table}[0];
+        $atable =~ s/^[^.]+\.//;
+        $selexpr = "$atable.$aoconf->{id}[0]->{column}[0]";
         if (defined($aoconf->{attr}{$aoconf->{rdn}[0]}->{selexpr})) {
             $selexpr = "$selexpr, $aoconf->{attr}{$aoconf->{rdn}[0]}->{selexpr}[0]";
         } else {
-            $selexpr = "$selexpr, $aoconf->{table}[0].$aoconf->{attr}{$aoconf->{rdn}[0]}->{column}[0]";
+            $selexpr = "$selexpr, $atable.$aoconf->{attr}{$aoconf->{rdn}[0]}->{column}[0]";
         }
 
         if ($oconf->{table}[0] ne $aoconf->{table}[0]) {
@@ -1243,11 +1255,13 @@ sub _getAttrValues
             $aoconf->{parentrel}[0] eq 'tight') {
             $cobj = $self->{object}{$aoconf->{container}->{oname}[0]};
             $coconf = $cobj->{conf};
-            $selexpr = "$selexpr, $coconf->{table}[0].$coconf->{id}[0]->{column}[0]";
+            my $ctable = $coconf->{table}[0];
+            $ctable =~ s/^[^.]+\.//;
+            $selexpr = "$selexpr, $ctable.$coconf->{id}[0]->{column}[0]";
             if (defined($aoconf->{attr}{$aoconf->{rdn}[0]}->{selexpr})) {
                 $selexpr = "$selexpr, $coconf->{attr}{$coconf->{rdn}[0]}->{selexpr}[0]";
             } else {
-                $selexpr = "$selexpr, $coconf->{table}[0].$coconf->{attr}{$coconf->{rdn}[0]}->{column}[0]";
+                $selexpr = "$selexpr, $ctable.$coconf->{attr}{$coconf->{rdn}[0]}->{column}[0]";
             }
 
             $from = "$from, $coconf->{table}[0]";
@@ -1270,7 +1284,7 @@ sub _getAttrValues
         $where =~ s/\%p/$pkey/g;
     } else {
         my $idquote = !defined($oconf->{id}[0]->{type}) || $oconf->{id}[0]->{type}[0] !~ /^(int|smallint|float|number|text|boolean)$/i ? "'" : '';
-        $where = "$oconf->{table}[0].$oconf->{id}[0]->{column}[0] = $idquote$key$idquote";
+        $where = "$otable.$oconf->{id}[0]->{column}[0] = $idquote$key$idquote";
         if (defined($oconf->{attr}{$attr}->{joinwhere})) {
             $where = "$where and $oconf->{attr}{$attr}->{joinwhere}[0]";
             $where =~ s/\%o/$key/g;
@@ -1490,6 +1504,8 @@ sub _filter2sql
 
     my ($op) = keys %{$filter};
     my $args = $filter->{$op};
+    my $otable = $oconf->{table}[0];
+    $otable =~ s/^[^.]+\.//;
 
     if ($op eq 'and' || $op eq 'or') {
         my ($lfrom, $lwhere, $rfrom, $rwhere);
@@ -1569,10 +1585,11 @@ sub _filter2sql
         # attribute doesn't exit
             ${$where} = '1 = 1';
     } elsif (defined($oconf->{attr}{$attr}->{column})) {
-        ${$where} = ($nml ? "lower($oconf->{table}[0].$oconf->{attr}{$attr}->{column}[0])" : "$oconf->{table}[0].$oconf->{attr}{$attr}->{column}[0]")." $type ".($nml ? "lower($quote$value$quote)" : "$quote$value$quote");
+        ${$where} = ($nml ? "lower($otable.$oconf->{attr}{$attr}->{column}[0])" : "$otable.$oconf->{attr}{$attr}->{column}[0]")." $type ".($nml ? "lower($quote$value$quote)" : "$quote$value$quote");
     } elsif (defined($oconf->{attr}{$attr}->{oname})) {
         my $aconf = $self->{object}{$oconf->{attr}{$attr}->{oname}[0]}->{conf};
-
+        my $atable = $aconf->{table}[0];
+        $atable =~ s/^[^.]+\.//;
         if (!grep(/^$aconf->{table}[0]$/, split(/, */, ${$from}))) {
             ${$from} = "${$from},$aconf->{table}[0]";
         }
@@ -1583,11 +1600,11 @@ sub _filter2sql
         my $nml = !defined($aconf->{attr}{$aconf->{rdn}[0]}) || !defined($aconf->{attr}{$aconf->{rdn}[0]}->{type}) || $aconf->{attr}{$$aconf->{rdn}[0]}->{type}[0] !~ /^(int|smallint|float|number|date|text|boolean)$/i ? 1 : 0;
         my $quote = !defined($aconf->{attr}{$aconf->{rdn}[0]}) || !defined($aconf->{attr}{$aconf->{rdn}[0]}->{type}) || $aconf->{attr}{$aconf->{rdn}[0]}->{type}[0] !~ /^(int|smallint|float|number)$/i ? "'" : '';
         ($value) = ($value =~ /^$aconf->{rdn}[0]=([^,]*)/i);
-        my $subquery = "select $oconf->{table}[0].$oconf->{id}[0]->{column}[0] from ${$from} where ".($nml ? "lower($aconf->{table}[0].$aconf->{attr}{$aconf->{rdn}[0]}->{column}[0])" : "$aconf->{table}[0].$aconf->{attr}{$aconf->{rdn}[0]}->{column}[0]")." $type ".($nml ? "lower($quote$value$quote)" : "$quote$value$quote");
+        my $subquery = "select $otable.$oconf->{id}[0]->{column}[0] from ${$from} where ".($nml ? "lower($atable.$aconf->{attr}{$aconf->{rdn}[0]}->{column}[0])" : "$atable.$aconf->{attr}{$aconf->{rdn}[0]}->{column}[0]")." $type ".($nml ? "lower($quote$value$quote)" : "$quote$value$quote");
         if (defined($oconf->{attr}{$attr}->{joinwhere})) {
             $subquery = "$subquery and $oconf->{attr}{$attr}->{joinwhere}[0]";
         }
-        ${$where} = "$oconf->{table}[0].$oconf->{id}[0]->{column}[0] in ($subquery)";
+        ${$where} = "$otable.$oconf->{id}[0]->{column}[0] in ($subquery)";
 
         if (defined($aconf->{container}) && !defined($aconf->{container}[0]->{rdn})) {
             my $paconf = $self->{object}{$aconf->{container}[0]->{oname}[0]}->{conf};
@@ -1607,11 +1624,11 @@ sub _filter2sql
         if (defined($oconf->{attr}{$attr}->{fromtbls})) {
             ${$from} = "${$from},$oconf->{attr}{$attr}->{fromtbls}[0]";
         }
-        my $subquery =  "select $oconf->{table}[0].$oconf->{id}[0]->{column}[0] from ${$from} where ".($nml ? "lower($oconf->{attr}{$attr}->{selexpr}[0])" : $oconf->{attr}{$attr}->{selexpr}[0])." $type ".($nml ? "lower($quote$value$quote)" : "$quote$value$quote");
+        my $subquery =  "select $otable.$oconf->{id}[0]->{column}[0] from ${$from} where ".($nml ? "lower($oconf->{attr}{$attr}->{selexpr}[0])" : $oconf->{attr}{$attr}->{selexpr}[0])." $type ".($nml ? "lower($quote$value$quote)" : "$quote$value$quote");
         if (defined($oconf->{attr}{$attr}->{joinwhere})) {
             $subquery = "$subquery and $oconf->{attr}{$attr}->{joinwhere}[0]";
         }
-        ${$where} = "$oconf->{table}[0].$oconf->{id}[0]->{column}[0] in ($subquery)";
+        ${$where} = "$otable.$oconf->{id}[0]->{column}[0] in ($subquery)";
     }
 
     return 1;

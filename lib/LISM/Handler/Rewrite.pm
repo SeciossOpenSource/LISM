@@ -151,7 +151,7 @@ sub pre_search
                     }
                 }
 
-                $elts[$i] =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                $elts[$i] =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                 ${$filterStrp} =~ s/\($elts[$i]\)/$elt/;
             }
         }
@@ -736,9 +736,9 @@ sub pre_modrdn
 =head2 pre_delete($dnp)
 
 Rewrite dn before delete operation is done.
-    
+
 =cut
-    
+
 sub pre_delete
 {
     my $self = shift;
@@ -920,7 +920,7 @@ sub _rewritePattern
     my $self = shift;
     my ($str, $pattern, $value) = @_;
 
-    my @rwmaps = ($str =~ /%{([^(]*\((?:(?!%{).)*\))}/gs);
+    my @rwmaps = ($str =~ /%\{([^(]*\((?:(?!%\{).)*\))\}/gs);
     foreach my $rwmap (@rwmaps) {
         my $tmpstr = $rwmap;
         my $tmpval = $value;
@@ -935,8 +935,8 @@ sub _rewritePattern
             $tmpval =~ s/$qt/\\$qt/g;
             $tmpstr =~ s/$pattern/$tmpval/g;
         }
-        $rwmap =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
-        $str =~ s/%{$rwmap}/%{$tmpstr}/;
+        $rwmap =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
+        $str =~ s/%\{$rwmap\}/%{$tmpstr}/;
     }
 
     $str =~ s/$pattern/$value/g;
@@ -975,7 +975,7 @@ sub _rewriteParse
 
         # do functions
         my @substs = ($substline);
-        my @rwmaps = ($substline =~ /%{([^(]*\((?:(?!%{).)*\))}/gs);
+        my @rwmaps = ($substline =~ /%\{([^(]*\((?:(?!%\{).)*\))\}/gs);
         foreach my $rwmap (@rwmaps) {
             my @values;
             my $key = lc($rwmap);
@@ -1000,12 +1000,12 @@ sub _rewriteParse
                 return $str;
             }
 
-            $rwmap =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+            $rwmap =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
             my @tmpsubsts;
             foreach my $subst (@substs) {
                 foreach my $value (@values) {
                     my $tmpsubst = $subst;
-                    $tmpsubst =~ s/%{$rwmap}/$value/;
+                    $tmpsubst =~ s/%\{$rwmap\}/$value/;
                     push(@tmpsubsts, $tmpsubst);
                 }
             }
@@ -1318,7 +1318,7 @@ sub _setProfile
                     }
                     foreach my $tmpval (@tmpvals) {
                         my $regex_val = $tmpval;
-                        $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                        $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                         if (!grep(/^$regex_val$/i, @{$replace_roles{$key}})) {
                             push(@{$replace_roles{$key}}, $tmpval);
                         }
@@ -1333,7 +1333,7 @@ sub _setProfile
                         foreach my $tmpval (@tmpvals) {
                             for (my $i = 0; $i < @{$replace_roles{$key}}; $i++) {
                                 my $regex_val = $tmpval;
-                                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                                 if (${$replace_roles{$key}}[$i] =~ /^$regex_val$/i) {
                                     splice(@{$replace_roles{$key}}, $i, 1);
                                     last;
@@ -1393,7 +1393,7 @@ sub _setProfile
                         } else {
                             foreach my $tmpval (@tmpvals) {
                                 my $regex_val = $tmpval;
-                                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                                 if (!grep(/^$regex_val$/i, @{$add_roles{$attr}})) {
                                     push(@{$add_roles{$attr}}, $tmpval);
                                 }
@@ -1433,7 +1433,7 @@ sub _setProfile
                         } else {
                             foreach my $tmpval (@tmpvals) {
                                 my $regex_val = $tmpval;
-                                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                                $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                                 if (!grep(/^$regex_val$/i, @{$del_roles{$attr}})) {
                                     push(@{$del_roles{$attr}}, $tmpval);
                                 }
@@ -1455,7 +1455,7 @@ sub _setProfile
                     next;
                 }
                 my $regex_val = $tmpval;
-                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                 if (!grep(/^$regex_val$/i, @cmpvals)) {
                     ${$entryp}[0] .= "$attr: $tmpval\n";
                 }
@@ -1468,7 +1468,7 @@ sub _setProfile
                     next;
                 }
                 my $regex_val = $tmpval;
-                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                 for (my $i = 0; $i < @{$replace_roles{$attr}}; $i++) {
                     if (${$replace_roles{$attr}}[$i] =~ /^$regex_val$/i) {
                         splice(@{$replace_roles{$attr}}, $i, 1);
@@ -1481,7 +1481,7 @@ sub _setProfile
                     next;
                 }
                 my $regex_val = $tmpval;
-                $regex_val =~ s/([.*+?\[\]()|\^\$\\])/\\$1/g;
+                $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
                 my $match = 0;
                 for (my $i = 0; $i < @{$replace_roles{$attr}}; $i++) {
                     if (${$replace_roles{$attr}}[$i] =~ /^$regex_val$/i) {
