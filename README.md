@@ -2,10 +2,12 @@
 LISM(LDAP Identity Synchronization Manager)は、LDAP、リレーショナルデータベース、CSVファイルといった様々形式で管理されているID情報を、LDAPインターフェースを通して一元的に管理することができるオープンソースの統合ID管理ソフトウェアです。
 
 ## 概要
-統合ID管理ソフトウェア「LISMは」、様々なシステムに分散したID情報や役割（ロール）情報を一元的に管理することができるソフトウェアです。
-LISMは、システムの情報を１つのLDAPディレクトリツリーとして管理し、連携先の各システムの情報はそれぞれサブツリーに分かれて管理されています。マスタデータとなるLDAPサーバの情報については、ou=LDAPとou=Masterの配下に表示され、ou=Master配下の情報がマスタデータとして扱われます。
-
-そのため、LISMのマスタデータ（OpenLDAP）に対して更新を行うことで、連携されている Active Directory、LDAP、RDBMSや、CSVファイル出力、RESTful API、SOAP　APIを持ったWebサービスに対してID情報をの更新内容をリアルタイムで同期することができます。ID情報の管理は、基本的にマスタデータに対して操作のみの一元管理を実現します。
+統合ID管理ソフトウェア「LISM」は、様々なシステムに分散したID情報や役割（ロール）情報を一元的に管理することができるソフトウェアです。  
+LISMは、システムの情報を１つのLDAPディレクトリツリーとして管理し、連携先の各システムの情報はそれぞれサブツリーに分かれて管理されています。マスタデータとなるLDAPサーバの情報については、ou=LDAPとou=Masterの配下に表示され、ou=Master配下の情報がマスタデータとして扱われます。  
+  
+そのため、LISMのマスタデータ（OpenLDAP）に対して更新を行うことで、LISMと連携されている  
+Active Directory、LDAP、RDBMSや、CSVファイル出力、RESTful API、SOAP APIを持ったWebサービスに対してID情報の更新内容をリアルタイムで同期することができます。  
+ID情報の管理は、基本的にマスタデータに対して操作のみの一元管理を実現します。
 
 ## 動作環境
 * OS：CentOS7、Redhat Enterprise Linux 7
@@ -27,11 +29,13 @@ SELinuxを無効にします。
 それから、/etc/selinux/configのSELINUXをpermissive、またはdisalbedに変更して下さい。
 
 ### LISM用OpenLDAPサーバの設定
-LISMの管理用LDAPサーバとして利用するための設定を行います。パッケージファイル内にある「secioss_ldif」フォルダ以下をOpneLDAPをインストールしたサーバにコピー（ディレクトリは何処でも構いません）して下さい。
-「secioss_ldif」フォルダ内には5つのldifファイルがあります。これらのファイルを編集し、LDAPの初期設定を行います。
+LISMの管理用LDAPサーバとして利用するための設定を行います。パッケージファイル内にある「secioss_ldif」フォルダ以下をOpneLDAPをインストールしたサーバにコピー（ディレクトリは何処でも構いません）して下さい。  
+「secioss_ldif」フォルダ内には5つのldifファイルがあります。このうち4つのファイルを編集し、LDAPの初期設定を行います。  
+
 1.admin.ldif
 2.schema.ldif
-5.module.ldif
+3.db.ldif
+4.module.ldif
 
 OpenLDAPの管理者パスワードをadmin.ldifの「olcRootPW」に記述して、以下のコマンドを実行して下さい。
 
@@ -41,15 +45,24 @@ OpenLDAPの管理者パスワードをadmin.ldifの「olcRootPW」に記述し�
 
 `# ldapmodify -Y EXTERNAL -H ldapi:// -f schema.ldif`
 
+OpenLDAPに対する一部初期設定を行います。  
+db.ldif内にあるsuffixのdc=example,dc=comは、構築したいベースDNに変更して下さい。
+
+`# sed -i -e "s/dc=example,dc=com/dc=lism,dc=ldap/g" db.ldif`
+
+以下のコマンドを実行して、適用して下さい。
+
+`# ldapmodify -Y EXTERNAL -H ldapi:// -f db.ldif`
+
 必要なモジュールの設定を以下のコマンドを実行して、適用して下さい。
 
 `# ldapmodify -Y EXTERNAL -H ldapi:// -f module.ldif`
 
 全ての設定が完了したら、OpenLDAPを再起動します。
 
-`systemctl restart slapd`
+`# systemctl restart slapd`
 
-次に、LDAPサーバに以下のLDIFファイルを登録して下さい。
+次に、LDAPサーバに以下のLDIFファイルを登録して下さい。  
 suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下さい。
 
     dn: dc=example,dc=com
@@ -61,7 +74,9 @@ suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下�
     changetype: add
     objectClass: organization
     objectClass: seciossTenant
+    objectClass: seciossPwdPolicy
     o: System
+    pwdAttribute: 2.5.4.35
     
     dn: ou=People,dc=example,dc=com
     changetype: add
@@ -89,7 +104,7 @@ suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下�
     objectClass: organizationalUnit
     ou: Profiles
     
-    dn: ou=Conig,dc=example,dc=com
+    dn: ou=Config,dc=example,dc=com
     changetype: add
     objectClass: organizationalUnit
     ou: Config
@@ -106,7 +121,8 @@ suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下�
 
 ### LISMのインストール
 githubのpackages/LISM-4.x.x-x.x86_64.tar.gzを展開して、インストールスクリプト(install.sh)を実行して下さい。  
-`# ./isntall.sh install`
+
+`# ./install.sh install`
 
 必要なパッケージが不足している場合、一覧表示され、自動的にインストールします。
 
