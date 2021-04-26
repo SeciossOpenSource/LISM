@@ -29,7 +29,8 @@ SELinuxを無効にします。
 それから、/etc/selinux/configのSELINUXをpermissive、またはdisalbedに変更して下さい。
 
 ### LISM用OpenLDAPサーバの設定
-LISMの管理用LDAPサーバとして利用するための設定を行います。パッケージファイル内にある「secioss_ldif」フォルダ以下をOpneLDAPをインストールしたサーバにコピー（ディレクトリは何処でも構いません）して下さい。  
+LISMの管理用LDAPサーバとして利用するための設定を行います。  
+パッケージファイル内にある「secioss_ldif」フォルダ以下をOpneLDAPをインストールしたサーバにコピー（ディレクトリは何処でも構いません）して下さい。  
 「secioss_ldif」フォルダ内には5つのldifファイルがあります。このうち4つのファイルを編集し、LDAPの初期設定を行います。  
 
 1.admin.ldif
@@ -46,7 +47,8 @@ OpenLDAPの管理者パスワードをadmin.ldifの「olcRootPW」に記述し�
 `# ldapmodify -Y EXTERNAL -H ldapi:// -f schema.ldif`
 
 OpenLDAPに対する一部初期設定を行います。  
-db.ldif内にあるsuffixのdc=example,dc=comは、構築したいベースDNに変更して下さい。
+db.ldif内にあるsuffixのdc=example,dc=comは、構築したいベースDNに変更して下さい。  
+それから、/etc/openldap/certsにLDAPのサーバー証明書（openldap.crt）と鍵（openldap.key）のファイルを配置して下さい。
 
 `# sed -i -e "s/dc=example,dc=com/dc=lism,dc=ldap/g" db.ldif`
 
