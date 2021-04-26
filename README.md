@@ -63,7 +63,7 @@ db.ldif内にあるsuffixのdc=example,dc=comは、構築したいベースDNに
 `# systemctl restart slapd`
 
 次に、LDAPサーバに以下のLDIFファイルを登録して下さい。  
-suffixのdc=example,dc=comは、OpenLDAPの設定に合わせて変更して下さい。
+suffixのdc=example,dc=com、"dc: example"は、OpenLDAPの設定に合わせて変更して下さい。
 
     dn: dc=example,dc=com
     changetype: add
@@ -140,7 +140,7 @@ githubのpackages/LISM-4.x.x-x.x86_64.tar.gzを展開して、インストール
 
     FQDNの設定を行います。
     FQDNを入力してください。(default: …) 
-    sime.secioss.com
+    lism.example.com
     FQDNの設定が完了しました。
 
 #### visudoの設定変更
