@@ -178,7 +178,7 @@ LISMが接続するLDAPサーバの設定を行います。
     LDAPサーバへの接続設定が完了しました。
 
 #### memcachedサーバへの接続確認
-memcachedサーバへの接続確認を行います。接続確認前にmemcachedを起動しておいて下さい。
+memcachedサーバへの接続確認を行います。接続確認前にmemcachedを起動しておいて下さい。  
 `# systemctl start memcached`
 
 localhostでmemcachedを起動している場合は、「localhost:11211」を入力して下さい。
