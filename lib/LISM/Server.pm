@@ -1,12 +1,4 @@
 #!/usr/bin/perl
-#
-#  This code was developped by SECIOSS (http://www.secioss.co.jp/).
-#
-#                 Copyright (C) 2016 SECIOSS, INC.
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU Lesser General Public License
-#  as published by the Free Software Foundation.
 
 package LISM::Server;
 
@@ -20,6 +12,20 @@ use base 'Net::LDAP::Server';
 use fields qw(config lism);
 
 use constant SIZELIMIT => 1000000;
+
+=head1 NAME
+
+LISM::Server - a class for LISM daemon
+
+=head1 DESCRIPTION
+
+This class use LISM for daemon.
+
+=head1 CONSTRUCTOR
+
+This is a plain constructor.
+
+=cut
 
 # constructor
 sub new {
@@ -122,7 +128,7 @@ sub add {
 
     return {
             'matchedDN' => '',
-            'errorMessage' => '',
+            'errorMessage' => $rc && defined($self->{lism}->{error}) ? $self->{lism}->{error} : '',
             'resultCode' => $rc
     };
 }
@@ -156,7 +162,7 @@ sub modify {
 
     return {
             'matchedDN' => '',
-            'errorMessage' => '',
+            'errorMessage' => $rc && defined($self->{lism}->{error}) ? $self->{lism}->{error} : '',
             'resultCode' => $rc
     };
 }
@@ -171,11 +177,28 @@ sub delete {
 
     return {
             'matchedDN' => '',
-            'errorMessage' => '',
+            'errorMessage' => $rc && defined($self->{lism}->{error}) ? $self->{lism}->{error} : '',
             'resultCode' => $rc
     };
 }
 
 # the rest of the operations will return an "unwilling to perform"
+
+=head1 SEE ALSO
+
+L<LISM>
+
+=head1 AUTHOR
+
+Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
+
+=head1 COPYRIGHT AND LICENSE
+
+(c) 2009 Kaoru Sekiguchi
+
+This library is free software; you can redistribute it and/or modify
+it under the GNU LGPL.
+
+=cut
 
 1;

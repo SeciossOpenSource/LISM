@@ -1,6 +1,7 @@
 package LISM;
 
 use strict;
+use Module::Load qw(load);
 use Net::LDAP::Filter;
 use LISM::Constant;
 use XML::Simple;
@@ -10,12 +11,16 @@ use Encode;
 use LISM::Storage;
 use Data::Dumper;
 if ($^O ne 'MSWin32') {
-    eval "use Sys::Syslog";
+    eval "load(Secioss::Auth::Util, 'openlog', 'syslog')";
+    if ($@) {
+        load(Sys::Syslog, 'openlog', 'syslog');
+    }
+    use Sys::Syslog qw(:macros);
 } else {
-    eval "use Log::Dispatch::FileRotate";
+    load(Log::Dispatch::FileRotate);
 }
 
-our $VERSION = '4.0.0';
+our $VERSION = '4.3.0';
 
 our $lism_master = 'lism_master';
 our $syncrdn = 'cn=sync';
@@ -426,6 +431,7 @@ sub _modify
     my $conf = $self->{_lism};
     my @pwd_mod_list;
     my $rc;
+    my $oldentry;
 
     # decode dn, values
     $dn = decode('utf8', $dn);
@@ -448,6 +454,12 @@ sub _modify
         my $dconf = $self->{data}{$dname}->{conf};
         if (defined($dconf->{caseexact})) {
             $case_exact = 1;
+        }
+
+        if ($list[1] =~ /^lismPreviousEntry$/i && $dname !~ /^(?:IdSync|Lifecycle|Task)$/) {
+            shift(@list);
+            shift(@list);
+            $oldentry = shift(@list);
         }
     }
     if (!$case_exact) {
@@ -482,7 +494,7 @@ sub _modify
         }
     }
 
-    $rc = $self->_doUpdate('modify', undef, 1, undef, $dn, @list);
+    $rc = $self->_doUpdate('modify', undef, 1, $oldentry, $dn, @list);
 
     return $rc;
 }
@@ -690,11 +702,7 @@ sub log
 
     if ($^O ne 'MSWin32') {
         openlog('LISM', 'pid', $conf->{syslogfacility});
-        if ($conf->{sysloglevel} ne 'info') {
-            setlogmask(Sys::Syslog::LOG_UPTO(Sys::Syslog::xlate($conf->{sysloglevel})));
-        }
         syslog($p{'level'}, sprintf("%.512s", $p{'message'}));
-        closelog();
     } else {
         $self->{log}->log(level => $p{'level'}, message => strftime("%Y/%m/%d %H:%M:%S", localtime(time))." ".$p{'message'}."\n");
     }
@@ -731,7 +739,6 @@ sub auditlog
             }
         }
         syslog('info', $message);
-        closelog();
 
         if ($conf->{auditfile}) {
             my $fd;
@@ -764,6 +771,191 @@ sub error
     my $self = shift;
 
     return $self->{error};
+}
+
+=pod
+
+=head2 rolelog($roleattrs, $type, $oldentry, $dn, @info)
+
+write to the role log.
+
+=cut
+
+sub rolelog
+{
+    my $self = shift;
+    my ($roleattrs, $type, $oldentry, $dn, @info) = @_;
+    my $conf = $self->{_config};
+    my @attrs = split(/, */, $roleattrs);
+    my $message = '';
+
+    if ($type eq 'add') {
+        my $entryStr  = $info[0];
+        foreach my $attr (@attrs) {
+            my @setval_roles;
+            if ($entryStr =~ /^setvalRole: $attr=(.+)$/mi) {
+                @setval_roles = split(/;/, $1);
+            }
+            if (@setval_roles) {
+                for (my $i = 0; $i < @setval_roles; $i++) {
+                    if ($setval_roles[$i] =~ /^[^=]+=([^,]+),.+/) {
+                        $setval_roles[$i] = $1;
+                    }
+                }
+                $message .= ($message ? " ": '')."$attr(rule):+".join(';', @setval_roles);
+            }
+            my @values = ($entryStr =~ /^$attr: (.+)$/gmi);
+            if (@values) {
+                for (my $i = 0; $i < @values; $i++) {
+                    my $value = $values[$i];
+                    if ($value =~ /^[^=]+=([^,]+),.+/) {
+                        $value = $1;
+                    }
+                    if (!grep(/^$value$/i, @setval_roles)) {
+                        $message .= ($i == 0 ? ($message ? ' ' : '')."$attr:+" : ';').$value;
+                    }
+                }
+            }
+        }
+    } elsif ($type eq 'modify' && $oldentry) {
+        my %setval_roles;
+        for (my $i = 0; $i < @info; $i++) {
+            if ($info[$i] =~ /^setvalRole$/i) {
+                $i++;
+                for (; $i < @info; $i++) {
+                    foreach my $attr (@attrs) {
+                        if ($info[$i] =~ /^$attr=(.+)$/i) {
+                            my @values = split(/;/, $1);
+                            for (my $j = 0; $j < @values; $j++) {
+                                if ($values[$j] =~ /^[^=]+=([^,]+),.+/) {
+                                    $values[$j] = $1;
+                                }
+                            }
+                            $setval_roles{lc($attr)} = \@values;
+                            last;
+                        }
+                    }
+                }
+                last;
+            }
+        }
+        while (@info > 0) {
+            my $action = shift @info;
+            my $key = lc(shift @info);
+            my @values;
+
+            while (@info > 0 && $info[0] ne "ADD" && $info[0] ne "DELETE" && $info[0] ne "REPLACE") {
+                my $value = shift @info;
+                if ($value =~ /^[^=]+=([^,]+),.+/) {
+                    $value = $1;
+                }
+                push(@values, $value);
+            }
+
+            if (!grep(/^$key$/i, @attrs)) {
+                next;
+            }
+
+            if ($action eq "ADD") {
+                if (defined($setval_roles{$key})) {
+                    $message .= ($message ? " " : '')."$key(rule):+".join(';', @{$setval_roles{$key}});
+                }
+                if (@values) {
+                    my $valmatch = 0;
+                    for (my $i = 0; $i < @values; $i++) {
+                        my $value = $values[$i];
+                        if (!grep(/^$value$/i, @{$setval_roles{$key}})) {
+                            $message .= (!$valmatch ? ($message ? ' ' : '')."$key:+" : ';').$value;
+                            $valmatch = 1;
+                        }
+                    }
+                }
+            } elsif ($action eq "REPLACE") {
+                my @old_vals = ($oldentry =~ /^$key: (.+)$/gmi);
+                for (my $i = 0; $i < @old_vals; $i++) {
+                    if ($old_vals[$i] =~ /^[^=]+=([^,]+),.+/) {
+                        $old_vals[$i] = $1;
+                    }
+                }
+                my @add_vals;
+                my @delete_vals;
+                foreach my $value (@values) {
+                    my $valmatch = 0;
+                    my $i = 0;
+                    for ($i = 0; $i < @old_vals; $i++) {
+                        if ($old_vals[$i] =~ /^$value$/i) {
+                            $valmatch = 1;
+                            last;
+                        }
+                    }
+                    if ($valmatch) {
+                        splice(@old_vals, $i, 1);
+                    } else {
+                        push(@add_vals, $value);
+                    }
+                }
+                @delete_vals = @old_vals;
+                if (@add_vals) {
+                    if (defined($setval_roles{$key})) {
+                        my $valmatch = 0;
+                        for (my $i = 0; $i < @{$setval_roles{$key}}; $i++) {
+                            my $value = ${$setval_roles{$key}}[$i];
+                            if (grep(/^$value$/i, @add_vals)) {
+                                $message .= (!$valmatch ? ($message ? ' ' : '')."$key(rule):+" : ';').$value;
+                                $valmatch = 1;
+                            }
+                        }
+                    }
+                    my $valmatch = 0;
+                    for (my $i = 0; $i < @add_vals; $i++) {
+                        my $value = $add_vals[$i];
+                        if (!grep(/^$value$/i, @{$setval_roles{$key}})) {
+                            $message .= (!$valmatch ? ($message ? ' ' : '')."$key:+" : ';').$value;
+                            $valmatch = 1;
+                        }
+                    }
+                }
+                if (@delete_vals) {
+                    $message .= ($message ? " ": '')."$key:-".join(';', @delete_vals);
+                }
+            } else {
+                next;
+            }
+        }
+    } else {
+        return;
+    }
+    if (!$message) {
+        return;
+    }
+
+    $message = "type=modifyrole dn=\"$dn\" result=0 error=\"\" $message";
+    my $binddn = defined($self->{bind}{edn}) ? $self->{bind}{edn} : $self->{bind}{dn};
+    $message = "user=\"$binddn\" $message";
+
+    my $ip_chain = defined($self->{bind}{ip_chain}) ? $self->{bind}{ip_chain} : '-';
+    $message = "ip_chain=\"$ip_chain\" $message";
+    if (defined($self->{bind}{ip})) {
+        $message = "ip=$self->{bind}{ip} $message";
+    } else {
+        $message = "ip=- $message";
+    }
+
+    if (defined($conf->{logrequestid})) {
+        $message = "reqid=".(defined($self->{bind}{reqid}) ? $self->{bind}{reqid} : 0)." $message";
+    }
+
+    if (defined($self->{bind}{app}) && $self->{bind}{app}) {
+        $message .= " app=\"$self->{bind}{app}\"";
+    }
+
+    if (defined($conf->{auditformat})) {
+        my $format = $conf->{auditformat};
+        eval "\$message =~ s/${$format}[0]/${$format}[1]/is";
+    }
+
+    openlog('LISM', 'pid', $conf->{auditfacility});
+    syslog('info', $message);
 }
 
 =pod
@@ -949,6 +1141,13 @@ sub _lismConfig
                 return 1;
             }
         }
+
+        if (defined($dconf->{rolelog})) {
+            if (!defined($dconf->{rolelog}[0]->{attr})) {
+                $self->log(level => 'alert', message => "rolelog doesn't have attr");
+                return 1;
+            }
+        }
     }
 
     if ((!defined($conf->{disable}) || $conf->{disable} ne 'sync') && defined($lismconf->{sync})) {
@@ -1067,15 +1266,15 @@ sub _lismConfig
                 }
 
                 if (defined($sobject->{syncfilter})) {
-                    $sobject->{syncfilterobj} = Net::LDAP::Filter->new($sobject->{syncfilter}[0]);
+                    $sobject->{syncfilterobj} = Net::LDAP::Filter->new(encode('utf8', $sobject->{syncfilter}[0]));
                 }
 
                 if (defined($sobject->{masterfilter})) {
-                    $sobject->{masterfilterobj} = Net::LDAP::Filter->new($sobject->{masterfilter}[0]);
+                    $sobject->{masterfilterobj} = Net::LDAP::Filter->new(encode('utf8', $sobject->{masterfilter}[0]));
                 }
 
                 if (defined($sobject->{delfilter})) {
-                    $sobject->{delfilterobj} = Net::LDAP::Filter->new($sobject->{delfilter}[0]);
+                    $sobject->{delfilterobj} = Net::LDAP::Filter->new(encode('utf8', $sobject->{delfilter}[0]));
                 }
 
                 # set order
@@ -1767,6 +1966,9 @@ sub _doUpdate
         if (defined($self->{_config}->{updatelog}) && !$rc && $dname ne 'Task') {
             $self->_writeUpdateLog($func, $dname, $dn, @info);
         }
+        if (defined($dconf->{rolelog}) && !$rc) {
+            $self->rolelog($dconf->{rolelog}[0]->{attr}, $func, $oldentry, $dn, @info);
+        }
     }
 
     return $rc;
@@ -2007,57 +2209,50 @@ sub _doHandler
 
     if ($dynhandler && $type ne 'unlock' && $func ne 'search' && $dn =~ /$dynhandler->{match}/i && !$hselect) {
         my %dynhandler;
-        if (defined($self->{bind}{dynhandler})) {
-            %dynhandler = %{$self->{bind}{dynhandler}};
-        } else {
-            my $handlerdn = $dynhandler->{dn};
-            my $handlerfilter = $dynhandler->{filter};
+        my $handlerdn = $dynhandler->{dn};
+        my $handlerfilter = $dynhandler->{filter};
 
-            my @matches = ($dn =~ /$dynhandler->{match}/i);
-            for (my $i = 0; $i < @matches; $i++) {
-                my $num = $i + 1;
-                $handlerdn =~ s/\%$num/$matches[$i]/g;
-                $handlerfilter =~ s/\%$num/$matches[$i]/g;
-            }
+        my @matches = ($dn =~ /$dynhandler->{match}/i);
+        for (my $i = 0; $i < @matches; $i++) {
+            my $num = $i + 1;
+            $handlerdn =~ s/\%$num/$matches[$i]/g;
+            $handlerfilter =~ s/\%$num/$matches[$i]/g;
+        }
 
-            my ($rc, $handlerEntry) = $self->_do_search($handlerdn, 2, 0, 0, $self->{_config}->{timeout}, $handlerfilter, 0);
-            if (!$rc || $rc == LDAP_NO_SUCH_OBJECT) {
-                if ($handlerEntry) {
-                    my ($xml) = ($handlerEntry =~ /^seciossConfigSerializedData: (.+)$/mi);
-                    $xml = decode_base64($xml);
-                    my $dynconf = XMLin($xml, ForceArray => 1);
-                    foreach my $hname (keys %{$dynconf->{data}{$dname}->{handler}}) {
-                        if (!defined($dynhandler{$dname})) {
-                            $dynhandler{$dname} = {};
-                        }
-                        my $module = "LISM::Handler::$hname";
-                        if (!defined($self->{_handler}{$dname}{$hname})) {
-                            eval "require $module;";
-                            if ($@) {
-                                $self->log(level => 'err', message => "require $module: $@");
-                                $rc = LDAP_OTHER;
-                                last DO;
-                            }
-                        }
-                        eval "\$dynhandler{$dname}{$hname} = new $module(\$self)";
+        my ($rc, $handlerEntry) = $self->_do_search($handlerdn, 2, 0, 0, $self->{_config}->{timeout}, $handlerfilter, 0);
+        if (!$rc || $rc == LDAP_NO_SUCH_OBJECT) {
+            if ($handlerEntry) {
+                my ($xml) = ($handlerEntry =~ /^seciossConfigSerializedData: (.+)$/mi);
+                $xml = decode_base64($xml);
+                my $dynconf = XMLin($xml, ForceArray => 1);
+                foreach my $hname (keys %{$dynconf->{data}{$dname}->{handler}}) {
+                    if (!defined($dynhandler{$dname})) {
+                        $dynhandler{$dname} = {};
+                    }
+                    my $module = "LISM::Handler::$hname";
+                    if (!defined($self->{_handler}{$dname}{$hname})) {
+                        eval "require $module;";
                         if ($@) {
-                            $self->log(level => 'err', message => "Can't create $module: $@");
+                            $self->log(level => 'err', message => "require $module: $@");
                             $rc = LDAP_OTHER;
                             last DO;
                         }
-
-                        $dynhandler{$dname}{$hname}->{sysloglevel} = $self->{_config}->{sysloglevel};
-                        $dynhandler{$dname}{$hname}->config($dynconf->{data}{$dname}->{handler}{$hname});
-                        $dynhandler{$dname}{$hname}->init();
                     }
-                    $self->{bind}{dynhandler} = \%dynhandler;
-                } else {
-                    $self->{bind}{dynhandler} = {};
+                    eval "\$dynhandler{$dname}{$hname} = new $module(\$self)";
+                    if ($@) {
+                        $self->log(level => 'err', message => "Can't create $module: $@");
+                        $rc = LDAP_OTHER;
+                        last DO;
+                    }
+
+                    $dynhandler{$dname}{$hname}->{sysloglevel} = $self->{_config}->{sysloglevel};
+                    $dynhandler{$dname}{$hname}->config($dynconf->{data}{$dname}->{handler}{$hname});
+                    $dynhandler{$dname}{$hname}->init();
                 }
-            } else {
-                $self->log(level => 'err', message => "Getting dnyamic handler($handlerdn $handlerfilter) failed($rc)");
-                last DO;
             }
+        } else {
+            $self->log(level => 'err', message => "Getting dnyamic handler($handlerdn $handlerfilter) failed($rc)");
+            last DO;
         }
 
         if (%dynhandler) {
@@ -2556,7 +2751,6 @@ sub _doSync
             my $member_attr = $conf->{sync}[0]->{master}[0]->{member}[0]->{attr};
             foreach my $group_dn (keys(%group_entries)) {
                 my $group_entry = $group_entries{$group_dn};
-                my @group_info;
                 my ($group_ddn, @group_info) = $self->_checkSyncData($dname, 'realtime', $group_entry, 'modify', $group_dn, 'ADD', $member_attr, $dn);
                 if (!$group_ddn || !@group_info) {
                     next;
@@ -3265,6 +3459,10 @@ sub _getSyncInfo
                             $nosync_data{$dname} = 1;
                             $nosync_entries{'master'}{$dn} = "The entry should move from \"$subdn,$sbase\" in master";
                         } else {
+                            if (defined($nosync_entries{'master'}{$dn})) {
+                                $nosync_entries{'master'}{$dn} .= ", duplicate";
+                            }
+
                             if (!defined($sobject->{masterattrs})) {
                                 @sync_attrs = $self->_unique(($mentry->{entryStr} =~ /^([^:]+):/gmi), ($entries[$i] =~ /\n([^:]+):/gi));
                             }
@@ -3318,7 +3516,15 @@ sub _getSyncInfo
                             }
                         }
 
-                        if ($ops{delete}) {
+                        if (defined($present_list->{$sbase}{list}{$key}) && $present_list->{$sbase}{list}{$key}->{$subdn}->{present}) {
+                            if (defined($nosync_entries{'master'}{$dn})) {
+                                if ($nosync_entries{'master'}{$dn} !~ /, duplicate/) {
+                                    $nosync_entries{'master'}{$dn} .= ", duplicate";
+                                }
+                            } else {
+                                $nosync_entries{'master'}{$dn} = "The entry is duplicate";
+                            }
+                        } else {
                             $present_list->{$sbase}{list}{$key}->{$subdn}->{present} = 1;
                         }
 	            }
@@ -3344,7 +3550,7 @@ sub _getSyncInfo
                                 !LISM::Storage->parseFilter($masterfilter, $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr})) {
                                 next;
                             }
-                            if (defined($sobject->{delfilterobj}) && LISM::Storage->parseFilter($sobject->{delfilterobj}, $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr})) {
+                            if (defined($sobject->{delfilterobj}) && !LISM::Storage->parseFilter($sobject->{delfilterobj}, $present_list->{$sbase}{list}{$key}->{$subdn}->{entryStr})) {
                                 next;
                             }
                             my $nosync_entry;
@@ -3387,11 +3593,13 @@ sub _setSyncInfo
     my $timeout = $self->{_config}->{timeout};
     my $present_list;
     my @sync_data = ();
+    my %nosync_entries;
     my %deletedn;
     my %syncflag_cache;
     my %opFlag;
     my $continueFlag = 0;
     my $rc = LDAP_SUCCESS;
+    $nosync_entries{'master'} = {};
 
     if (!defined($master->{suffix})) {
         return LDAP_UNWILLING_TO_PERFORM;
@@ -4333,6 +4541,11 @@ sub _setSyncInfo
                                 } else {
                                     $update_info{master}->{$dname}->{$oname}{add_success}++;
                                 }
+                                if (defined($nosync_entries{'master'}{$dn})) {
+                                    $self->auditlog('duplicate', $dn, 0, '');
+                                } else {
+                                    $nosync_entries{'master'}{$dn} = 1;
+                                }
                             }
                         } else {
                             if ($dstdn) {
@@ -4443,6 +4656,11 @@ sub _setSyncInfo
                                         $update_info{master}->{$dname}->{$oname}{mod_success}++;
                                     }
                                 }
+                            }
+                            if (defined($nosync_entries{'master'}{$dn})) {
+                                $self->auditlog('duplicate', $dn, 0, '');
+                            } else {
+                                $nosync_entries{'master'}{$dn} = 1;
                             }
                         }
 
@@ -5084,7 +5302,7 @@ sub _checkSyncData
             my @sync_vals = $self->_checkSyncAttrs($master, $data, $sattr, \%memberattrmap, @values);
             if (@sync_vals) {
                 push(@dinfo, $action, $sync_attr, @sync_vals);
-            } elsif (($action eq "REPLACE" || $action eq "DELETE") && !@values) {
+            } elsif (($action eq "REPLACE" || $action eq "DELETE") && (!@values || !$values[0])) {
                 push(@dinfo, $action, $sync_attr);
             }
             push(@updated_attrs, $sync_attr);
@@ -5440,24 +5658,18 @@ sub _cmpPwdHash
         }
     }
 
+    $val1 =~ s/^\{[^\}]+\}//;
+    $val2 =~ s/^\{[^\}]+\}//;
     if ($phtype1 eq $phtype2) {
         return 1;
     } elsif ($phtype1 eq 'PLAINTEXT') {
-        if ($phtype2 eq 'CRYPT') {
-            $salt = substr($val2, length('{CRYPT}'), 2);
-        }
-        $val1 =~ s/^\{[^\}]+\}//;
-        if ($val2 eq "{$phtype2}".$self->_hash($phtype2, $val1, $salt)) {
+        if ($storage2->cmpPasswd($val1, $val2, $phtype2)) {
             return 0;
         } else {
             return 1;
         }
     } elsif ($phtype2 eq 'PLAINTEXT') {
-        if ($phtype1 eq 'CRYPT') {
-            $salt = substr($val1, length('{CRYPT}'), 2);
-        }
-        $val2 =~ s/^\{[\}]+\}//;
-        if ($val1 eq "{$phtype1}".$self->_hash($phtype1, $val2, $salt)) {
+        if ($storage1->cmpPasswd($val2, $val1, $phtype1)) {
             return 0;
         } else {
             return 1;
@@ -5468,42 +5680,6 @@ sub _cmpPwdHash
 
     return 0;
 }
-
-sub _hash
-{
-    my $self = shift;
-    my ($htype, $value, $salt) = @_;
-    my $hash;
-
-    if ($htype =~ /^(CRYPT|MD5|SHA|SSHA)$/i && Encode::is_utf8($value)) {
-        $value = encode('utf8', $value);
-    }
-
-    # hash the value
-    if ($htype =~ /^SSHA$/i) {
-        if (!$salt) {
-            $salt = Crypt::CBC->random_bytes(4);
-        }
-        my $ctx = Digest::SHA1->new;
-        $ctx->add($value.$salt);
-        $hash = encode_base64($ctx->digest.$salt);
-    } elsif ($htype =~ /^CRYPT$/i) {
-        $hash = crypt($value, $salt);
-    } elsif ($htype =~ /^MD5$/i) {
-        my $ctx = Digest::MD5->new;
-        $ctx->add($value);
-        $hash = $ctx->b64digest.'==';
-    } elsif ($htype =~ /^SHA$/i) {
-        my $ctx = Digest::SHA1->new;
-        $ctx->add($value);
-        $hash = $ctx->b64digest.'=';
-    } else {
-        $hash = $value;
-    }
-
-    return $hash;
-}
-
 
 sub _unique
 {
@@ -5736,6 +5912,8 @@ sub _auditMsg
         $message = "newrdn=$info[0]";
     } elsif ($type eq 'delete') {
         $message = ' ';
+    } elsif ($type eq 'duplicate') {
+        $message = ' ';
     }
     if (!$message) {
         return $message;
@@ -5749,14 +5927,20 @@ sub _auditMsg
         $message = "user=\"$binddn\" $message";
     }
 
+    my $ip_chain = defined($self->{bind}{ip_chain}) ? $self->{bind}{ip_chain} : '-';
+    $message = "ip_chain=\"$ip_chain\" $message";
     if (defined($self->{bind}{ip})) {
         $message = "ip=$self->{bind}{ip} $message";
     } else {
-        $message = "ip=127.0.0.1 $message";
+        $message = "ip=- $message";
     }
 
     if (defined($self->{_config}{logrequestid})) {
         $message = "reqid=".(defined($self->{bind}{reqid}) ? $self->{bind}{reqid} : 0)." $message";
+    }
+
+    if (defined($self->{bind}{app}) && $self->{bind}{app}) {
+        $message .= " app=\"$self->{bind}{app}\"";
     }
 
     if (defined($self->{_config}->{auditformat})) {
@@ -5781,7 +5965,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

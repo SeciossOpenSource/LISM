@@ -160,9 +160,15 @@ sub _connect
         }
     }
 
-    ${$db} = DBI->connect($conf->{dsn}[0], $conf->{admin}[0], $conf->{passwd}[0]);
+    foreach my $dsn (@{$conf->{dsn}}) {
+        ${$db} = DBI->connect($dsn, $conf->{admin}[0], $conf->{passwd}[0]);
+        if (${$db}) {
+            last;
+        } else {
+            $self->log(level => 'alert', message => "Can't connect $dsn: ".$DBI::errstr);
+        }
+    }
     if (!${$db}) {
-        $self->log(level => 'alert', message => "Can't connect $conf->{dsn}[0]: ".$DBI::errstr);
         return -1;
     }
 
@@ -1698,7 +1704,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

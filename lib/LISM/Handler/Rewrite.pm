@@ -298,9 +298,14 @@ sub pre_modify
             }
 
             if (defined($rule->{profile}) && defined($rule->{roles})) {
-                if ($self->_setProfile('modify', $rule, ${$dnp}, $listp, $oldentryp)) {
-                    $self->log(level => 'err', message => "modify rewrite rule of profile \"$rule->{profile}\" failed");
-                    return LDAP_OPERATIONS_ERROR;
+                my $rc = $self->_setProfile('modify', $rule, ${$dnp}, $listp, $oldentryp, $errorp);
+                if ($rc) {
+                    $self->log(level => 'err', message => "modify rewrite rule of profile \"$rule->{profile}\" failed($rc)");
+                    if ($rc == LDAP_NO_SUCH_OBJECT) {
+                        return LDAP_CONSTRAINT_VIOLATION;
+                    } else {
+                        return LDAP_OPERATIONS_ERROR;
+                    }
                 }
                 next;
             }
@@ -311,7 +316,21 @@ sub pre_modify
 
             my %rwcache;
             my $substitution = $rule->{substitution};
-            $substitution = $self->_rewritePattern($substitution, '%0', $modlist);
+            my $tmpstr = "${$dnp}\n";
+            if (defined($rule->{entryattrs})) {
+                foreach my $attr (split(/, */, $rule->{entryattrs})) {
+                    my @values = ($entryStr =~ /^$attr: (.*)$/gmi);
+                    if (@values) {
+                        foreach my $value (@values) {
+                            $tmpstr .= "$attr: $value\n";
+                        }
+                    }
+                }
+            } else {
+                $tmpstr .= $entryStr;
+            }
+            $substitution = $self->_rewritePattern($substitution, '%0', $tmpstr);
+            $substitution = $self->_rewritePattern($substitution, '%\+', $modlist);
             if ($oldentryp) {
                 my $tmpstr;
                 if (defined($rule->{entryattrs})) {
@@ -473,7 +492,7 @@ sub post_modify
             my %rwcache;
             my $substitution = $rule->{substitution};
             my $modlist = "${$dnp}\n".join("\n", @{$listp});
-            $substitution = $self->_rewritePattern($substitution, '%0', $modlist);
+            $substitution = $self->_rewritePattern($substitution, '%\+', $modlist);
             if ($oldentryp) {
                 my $tmpstr;
                 if (defined($rule->{entryattrs})) {
@@ -583,9 +602,14 @@ sub pre_add
             }
 
             if (defined($rule->{profile}) && defined($rule->{roles})) {
-                if ($self->_setProfile('add', $rule, ${$dnp}, $entryStrp)) {
-                    $self->log(level => 'err', message => "add rewrite rule of profile \"$rule->{profile}\" failed");
-                    return LDAP_OPERATIONS_ERROR;
+                my $rc = $self->_setProfile('add', $rule, ${$dnp}, $entryStrp, undef, $errorp);
+                if ($rc) {
+                    $self->log(level => 'err', message => "add rewrite rule of profile \"$rule->{profile}\" failed($rc)");
+                    if ($rc == LDAP_NO_SUCH_OBJECT) {
+                        return LDAP_CONSTRAINT_VIOLATION;
+                    } else {
+                        return LDAP_OPERATIONS_ERROR;
+                    }
                 }
                 next;
             }
@@ -939,7 +963,9 @@ sub _rewritePattern
         $str =~ s/%\{$rwmap\}/%{$tmpstr}/;
     }
 
-    $str =~ s/$pattern/$value/g;
+    if ($pattern ne '%0' && $pattern ne '%-' && $pattern ne '%\+') {
+        $str =~ s/$pattern/$value/g;
+    }
     return $str;
 }
 
@@ -1197,7 +1223,7 @@ sub _regexpMap
 sub _setProfile
 {
     my $self = shift;
-    my ($func, $rule, $dn, $entryp, $oldentryp) = @_;
+    my ($func, $rule, $dn, $entryp, $oldentryp, $errorp) = @_;
     my $suffix = $self->{lism}->{_config}->{basedn};
     my ($basedn) = ($dn =~ /(ou=[^,]+,$suffix)$/i);
     my @dbases;
@@ -1219,11 +1245,19 @@ sub _setProfile
     my @add_profiles;
     my @del_profiles;
     my @mod_list;
+    my @setval_profiles;
+    my @setval_roles;
     if ($func eq 'add') {
         my $entryStr = ${$entryp}[0];
         foreach my $profile_attr (@profile_attrs) {
             push(@add_profiles, ($entryStr =~ /^$profile_attr: (.+)$/gmi));
+            my ($tmpval) = ($entryStr =~ /^setvalRole: $profile_attr=(.+)$/mi);
+            if ($tmpval) {
+                push(@setval_profiles, split(/;/, $tmpval));
+            }
         }
+        @setval_roles = ($entryStr =~ /^setvalRole: (.+)$/gmi);
+        ${$entryp}[0] =~ s/^setvalRole: .*\n//gmi;
     } elsif ($func eq 'modify') {
         my @list = @{$entryp};
         my $updated = 0;
@@ -1254,6 +1288,9 @@ sub _setProfile
                     if ($basedn && $tmpval =~ /,ou=[^,]+,$basedn$/i) {
                         foreach my $dbase (@dbases) {
                             if ($tmpval =~ /$dbase,$basedn$/i) {
+                                $tmpval =~ s/$basedn/$suffix/i;
+                                last;
+                            } elsif ($tmpval =~ /${dbase}0[0-9]+,$basedn$/i) {
                                 $tmpval =~ s/$basedn/$suffix/i;
                                 last;
                             }
@@ -1307,6 +1344,9 @@ sub _setProfile
                                 if ($tmpvals[$i] =~ /$dbase,$basedn$/i) {
                                     $tmpvals[$i] =~ s/$basedn/$suffix/i;
                                     last;
+                                } elsif ($tmpvals[$i] =~ /${dbase}0[0-9]+,$basedn$/i) {
+                                    $tmpvals[$i] =~ s/$basedn/$suffix/i;
+                                    last;
                                 }
                             }
                         }
@@ -1344,6 +1384,15 @@ sub _setProfile
                         $replace_roles{$key} = [];
                     }
                 }
+            } elsif ($key eq 'setvalrole') {
+                @setval_roles = @tmpvals;
+                foreach my $profile_attr (@profile_attrs) {
+                    foreach my $tmpval (@tmpvals) {
+                        if ($tmpval =~ /^$profile_attr=(.+)$/i) {
+                            push(@setval_profiles, split(/;/, $1));
+                        }
+                    }
+                }
             } else {
                 push(@mod_list, $action, $attr, @tmpvals);
             }
@@ -1371,6 +1420,9 @@ sub _setProfile
         }
         my ($rc, @entries) = $self->{lism}->search($profile, 0, 0, 0, 0, '(objectClass=*)', 0, @attrs);
         if ($rc) {
+            if ($rc == LDAP_NO_SUCH_OBJECT) {
+                ${$errorp} = join(',', @profile_attrs)."=$profile in $dn is invalid: value doesn't exist in data" if ref($errorp);
+            }
             return $rc;
         }
         if (@entries) {
@@ -1382,6 +1434,9 @@ sub _setProfile
                             if ($basedn && $tmpvals[$i] =~ /,ou=[^,]+,$basedn$/i) {
                                 foreach my $dbase (@dbases) {
                                     if ($tmpvals[$i] =~ /$dbase,$basedn$/i) {
+                                        $tmpvals[$i] =~ s/$basedn/$suffix/i;
+                                        last;
+                                    } elsif ($tmpvals[$i] =~ /${dbase}0[0-9]+,$basedn$/i) {
                                         $tmpvals[$i] =~ s/$basedn/$suffix/i;
                                         last;
                                     }
@@ -1399,6 +1454,24 @@ sub _setProfile
                                 }
                             }
                         }
+                        if (grep(/^$profile$/i, @setval_profiles)) {
+                            if (!grep(/^$attr=/i, @setval_roles)) {
+                                push(@setval_roles, "$attr=");
+                            }
+                            for (my $j = 0; $j < @setval_roles; $j++) {
+                                if ($setval_roles[$j] =~ /^$attr=(.*)/) {
+                                    my $setval_role = $1;
+                                    foreach my $tmpval (@tmpvals) {
+                                        my $regex_val = $tmpval;
+                                        $regex_val =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
+                                        if (";$regex_val;" !~ /;$regex_val;/i) {
+                                            $setval_roles[$j] .= ';'.$tmpval;
+                                        }
+                                    }
+                                    last;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1411,6 +1484,9 @@ sub _setProfile
         }
         my ($rc, @entries) = $self->{lism}->search($profile, 0, 0, 0, 0, '(objectClass=*)', 0, @attrs);
         if ($rc) {
+            if ($rc == LDAP_NO_SUCH_OBJECT) {
+                ${$errorp} = join(',', @profile_attrs)."=$profile in $dn is invalid: value doesn't exist in data" if ref($errorp);
+            }
             return $rc;
         }
         if (@entries) {
@@ -1422,6 +1498,9 @@ sub _setProfile
                             if ($basedn && $tmpvals[$i] =~ /,ou=[^,]+,$basedn$/i) {
                                 foreach my $dbase (@dbases) {
                                     if ($tmpvals[$i] =~ /$dbase,$basedn$/i) {
+                                        $tmpvals[$i] =~ s/$basedn/$suffix/i;
+                                        last;
+                                    } elsif ($tmpvals[$i] =~ /${dbase}0[0-9]+,$basedn$/i) {
                                         $tmpvals[$i] =~ s/$basedn/$suffix/i;
                                         last;
                                     }
@@ -1460,6 +1539,9 @@ sub _setProfile
                     ${$entryp}[0] .= "$attr: $tmpval\n";
                 }
             }
+            foreach my $setval_role (@setval_roles) {
+                ${$entryp}[0] .= "setvalRole: $setval_role\n";
+            }
         }
     } elsif ($func eq 'modify') {
         foreach my $attr (@attrs) {
@@ -1495,6 +1577,9 @@ sub _setProfile
             }
             push(@mod_list, 'REPLACE', $attr, @{$replace_roles{$attr}});
         }
+        if (@setval_roles) {
+            push(@mod_list, 'REPLACE', 'setvalRole', @setval_roles);
+        }
         @{$entryp} = @mod_list;
     }
 
@@ -1512,7 +1597,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

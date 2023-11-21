@@ -43,17 +43,17 @@ compare_ldif("0203",$mesg,$mesg->sorted);
 $mesg = $ldap->search(base => $LDAPDN, filter => 'objectClass=*', scope => 'one', attrs => ['ou']);
 compare_ldif("0204",$mesg,$mesg->sorted);
 
-$mesg = $ldap->search(base => $LDAPDN, filter => 'cn=ユーザ0201', attrs => ['cn']);
+$mesg = $ldap->search(base => $LDAPDN, filter => 'cn=ユーザー0201', attrs => ['cn']);
 compare_ldif("0205",$mesg,$mesg->sorted);
 
 $mesg = $ldap->search(base => $LDAPDN, filter => 'employeeType=派遣', attrs => ['employeeType']);
 compare_ldif("0206",$mesg,$mesg->sorted);
 
 # Compare
-$mesg = $ldap->compare($dn, attr => 'cn', value => 'ユーザ0201');
+$mesg = $ldap->compare($dn, attr => 'cn', value => 'ユーザー0201');
 ok($mesg->code == 6, "compare uid=user0201 true");
 
-$mesg = $ldap->compare($dn, attr => 'cn', value => 'ユーザ0200');
+$mesg = $ldap->compare($dn, attr => 'cn', value => 'ユーザー0200');
 ok($mesg->code == 5, "compare uid=user0201 false");
 
 

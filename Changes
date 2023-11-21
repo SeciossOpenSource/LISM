@@ -1,0 +1,479 @@
+Revision history for Perl extension LISM.
+
+4.3.0  Mon Apr 10 17:34:00 2023
+    - Added rolelog function.
+    - Supported multibyte characters for synchronization filters.
+    - Log enhancements IP output, etc.
+    - Fixed minor bugs.
+
+4.2.0  Tue Oct 26 13:49:11 2021
+    - Fixed minor bugs.
+
+4.1.3  Wed Jun  9 11:52:09 2021
+    - Supported PBKDF_SHA256, SSHA512 for password hashing.
+    - Fixed minor bugs.
+
+4.1.2  Mon Mar 15 15:18:22 2021
+    - Added member function to master storage or task handler.
+    - Fixed minor bugs.
+
+4.1.1  Tue Jun  9 11:50:35 2020
+    - Supported perl 5.26.
+    - Supported SSHA for password hashing.
+    - Added syncdn to syncflag.
+    - Changed to apply memberfilter in difference check.
+
+4.0.1  Wed Jun  5 14:48:42 2019
+    - Added modrdn support for LDAP synchronization containers.
+    - Added DN to exclude synchronization.
+    - Added dyhandler function.
+    - Added memberattrmap to syncflag.
+    - Changed to mask "unicodePwd" in the logs.
+    - Limited log size to 200KB.
+    - Supported RDN case sensitivity when syncing.
+
+4.0.0  Wed Dec  2 13:08:22 2016
+    - Support changing masterop or syncop per-object basis.
+
+2.3.19 Wed Aug 24 17:34:10 2016
+    - Added attr and entryfilter parameters to syncflag.
+    - Added auditlog multi-line support. 
+    - Changed to mask synchronization passwords in the logs.
+    - Supported multi attributes for valexists.
+    - Fixed minor bugs.
+
+2.3.18 Tue Oct 28 12:45:56 2014
+    - Fixed circular reference.
+    - Added storing CSV record in DB.
+
+2.3.17 Wed May 15 00:59:58 2013
+    - Added cluster configuration.
+    - Added customconfig.
+    - Added log summary in differential synchronization.
+    - Added retcode configuration.
+    - Fixed dn escape.
+    - Output script error in audit log.
+    - Fixed execrule match in Script handler.
+    - Fixed regular expression escape in Check handler.
+    - Added null check in SQL storage.
+    - Added timeout,retry,interval in SOAP storage.
+
+2.3.16 Tue Jun 12 23:47:28 2012
+    - Added getParent,path2dn in lism_util.pl.
+    - Added parentdn in searchLism.
+    - Added match and substitution to searchLism.
+    - Added delorder.
+    - Added update log.
+    - Added auditfile.
+    - Output Check error to audit log.
+    - Fixed deleteflag in LDAP storage.
+    - Fixed multibyte base in searchLism.
+    - Fixed slapd down.
+    - Fixed forcesync.
+    - Fixed regexp syncdn.
+
+2.3.15 Sun Apr  8 15:35:54 2012
+    - Added pwdpolicy in Check handler.
+    - Enabled multiple attributes in searchLism.
+    - Delete lock in bind.
+    - Support regular expression in syncdn.
+    - Added forcesyncattr.
+    - Added printlog in storage and handler.
+    - Override entry in adding deleted entry.
+    - Fixed storage instance order.
+    - Fixed text field bug in SQL storage.
+    - Delete before add in synchronization.
+
+2.3.14 Tue Jan  3 11:20:32 2012
+    - Added delfilter.
+    - Added add,modify,delete type in access rule.
+    - Added log message of constraint violation.
+    - Added valexists to Check handler.
+    - Fixed space value bug in Check handler.
+    - Delete Google Apps storage.
+
+2.3.13 Sat Nov 19 21:34:25 2011
+    - Added notrule to syncattr.
+    - Delete uneeded search in getPresentList().
+    - Added error reason in audit log.
+    - Added option to set user,group to syncdir.
+    - Fixed data name in syncfail log.
+    - Fixed tree delete in synchronization.
+
+2.3.12 Thu Sep 15 23:16:00 2011
+    - Improved search in synchronization.
+    - Fixed rewriting white space.
+    - Fixed entry decode bug in CSV,SOAP storage.
+    - Fixed deleteflag bug in LDAP storage.
+
+2.3.11 Mon Jul 27 11:09:15 2011
+    - Added effective dn in bind operation.
+    - Added size limit to lism search in Handler.
+    - Deny to delete user to connect Google Apps.
+    - Enable rdn of mail attribute in Google Apps.
+    - Added sort in SQL Storage.
+    - Restrict message size of audit log.
+    - Fixed number type fields bug in SQL Storage.
+
+2.3.10 Tue Mar 15 11:00:19 2011
+    - Added syslogfacility in slapd.conf
+    - Added lismCmdOption in synchronization read
+    - Added lismunique option in Check handler
+    - Added filter option in Setval handler
+    - Added attribute constant in SQL storage
+    - Changed sync option name
+    - Fixed plainpassword bug in add operation
+    - Fixed single quotation bug in Rewrite handler
+    - Fixed escape bug in Script handler
+
+2.3.9 Sun Jan 30 17:59:27 2011
+    - Overwrite entry when entry already exists in synchronization
+    - Added max entries check of attribute
+    - Added log level in message
+    - Added sync base check
+    - Added check handler in synchronization update    
+    - Added rollback in handler failure
+    - Added useprevious option in handler
+    - Added attrs option in rewrite
+    - Added lismexist option in Check handler
+    - Added check handler in add,modify operation
+    - Added op option in Check rule
+    - Added plugin in objSearch
+    - Check return code in post handler
+    - Fixed CSV storage bugs
+    - Fixed SQL storage bug when value is 0
+    - Fixed connection check bug in SQL storage
+    - Fixed decode bug in Google Apps storage
+    - Fixed bugs in Script and Rewrite handler
+    - Fixed multibyte string bug in Handler
+    - Fixed dnignore bug
+
+2.3.8 Thu Sep 23 23:22:39 2010
+    - Added move operation
+    - Added unique option in differential synchronization
+    - Support recursive object
+    - Support LDAP control in search
+    - Added delete option in Setval handler
+    - Added replace, strmap function in lism_util.pl
+    - Use Text::CSV_XS in CSV storage
+    - Fixed realtime synchronization when synctype is differential
+
+2.3.7 Sun Jul  4 14:03:49 2010
+    - Added Google App Engine storage
+    - Added check of delete in dnignore synchronization
+    - Added noreplace option in syncattr,masterattr
+    - Added max number of users in synchronization
+    - Added lock in Handler
+
+2.3.6 Wed May 26 11:46:34 2010
+    - Added Check handler
+    - Added connection type
+    - Added cluster type in sync information
+    - Added updatenull in sync attributes
+    - Added op in sync attributes
+    - Added modop in rewrite
+    - Added handler lock
+    - Added append mode in opening CSV file
+    - Delete ",',space from both ends of value
+    - Fixed synchronization bugs
+    - Fixed present search in SQL module
+    - Fixed rexpr bug in CSV module
+
+2.3.5 Sat Mar  6 21:12:12 2010
+    - Fixed sync data bug
+    - Added getSureName and getGivenName in lism_util.pl
+    - Fixed LDAP connection retry in lism_plugin.pl
+    - Fixed break bug in CSV module
+    - Added rexpr in CSV module
+    - Google Apps module support Windows
+    - Fixed search filter bug in SQL module
+    - Added deleteflag in LDAP module
+    - Fixed ldapmap dn bug in LDAP module
+
+2.3.4 Sun Dec  6 12:12:24 2009
+    - Added LISM search in Rewrite handler
+    - Added filter rule in Rewrite handler
+    - Disabled object class synchronization by default
+    - Added reconnect in lism_plugin.pl
+    - Fixed page size bug in Active Directory storage
+
+2.3.3 Sun Oct 11 16:49:45 2009
+    - Added synctype
+    - Added strginfo filter in CSV module
+    - Added read from cmmand output in CSV module
+    - Apply syncfilter to updated entry
+    - Delete entries in cluster when syncflag is disabled
+    - Added class name in log messages
+    - Fixed addition of entry with long dn
+
+2.3.2 Fri Aug 28 19:34:06 2009
+    - Added nickname and mailing list objects to Google Apps
+    - Added proxy authorization
+    - Added IP address in audit log
+    - Added auditformat directive in slapd.conf
+    - Deleted auto cluster remove
+    - Fixed access rule bug
+    - Fixed LDAP mapping in add operation
+
+2.3.1 Fri Jul 24 11:41:25 2009
+    - Added Google Apps multi tenant
+    - Added synchronization flag
+    - Added synchronization attribute filter
+    - Fixed Google Apps bugs
+    - Fixed synchronization bugs
+
+2.3.0 Mon May 25 13:31:54 2009
+    - Added SOAP module
+    - Added Google Apps module
+    - Added Active Directory module
+    - Added transaction in LDAP module
+
+2.2.10 Sun May 24 23:05:15 2009
+    - Fixed rewrite handler bug
+    - Fixed synchronization of multi level tree
+    - Fixed null password synchronization
+    - Fixed synchronization when syncattr isn't set
+    - Added base of synchronization
+
+2.2.9 Wed Feb 11 10:19:41 2009
+    - Fixed search bugs
+    - Fixed Rewrite handler bugs
+    - Added option of DIT management
+    - Added user in audit log message
+
+2.2.8 Thu Jan  8 11:27:20 2009
+    - Replaced entry tag of container to subcontainer tag
+    - Fixed rewrite bugs
+    - Fixed search bugs
+    - Fixed synchronization bugs
+    - Fixed search filter bug in SQL modlue
+    - Fixed rollback bug in SQL module
+    - Added plugin to SQL modlue
+    - Added plain password to request information
+
+2.2.7 Sun Nov 16 13:38:55 2008
+    - Enabled to synchronize plain test password from master data to clusters
+    - Added replace in Setval handler
+    - Fixed syslog level bug
+    - Fixed substrings bug in parsing search filter
+    - Fixed carriage return bug in CSV module
+    - Fixed system() bug in Script handler
+
+2.2.6 Mon Sep  8 12:42:39 2008
+    - Fixed checkfilter in reading synchronization information
+    - Added access control to read synchronization information
+    - Applied log to windows
+
+2.2.5 Sat Aug  9 20:45:00 2008
+    - Fixed bug with dn has multibyte alphabet
+    - Added no delete option in SQL module
+
+2.2.4 Mon May 26 10:35:28 2008
+    - Added synchronization failure log in difference synchronization
+    - Fixed naming violation check about dn and rdn
+    - Fixed regexp escape in Storage.pm
+
+2.2.3 Thu Apr 17 00:05:18 2008
+    - Enabled to use parent object's id in sql sentence for attribute
+    - Added LDAP connection check in handler
+    - Added cp932 in character set
+    - Fixed receiving long binary data in LDAP
+    - Fixed multibyte uri in LDAP
+    - Fixed regexp escape
+    - Added debug message in search and update
+
+2.2.2 Thu Mar  6 20:56:48 2008
+    - Added regular expression rewrite map in rewrite handler
+    - Output audit message to different log file
+    - Added break character conversion
+    - Added continue option in synchronization failure
+    - Changed synchronization order(cluster, master)
+    - Added timeout to internal search connection
+    - Added dn ignore option in synchronization
+    - Fixed cluster and failover bugs
+    - Fixed multibyte character bugs
+
+2.2.1 Wed Jan 30 15:40:45 2008
+    - Enabled specifying entries synchronized by search filter in command
+    - Added no synchronization option in adding cluster
+    - Enabled creating file in CSV if file doesn't exist
+
+2.2.0 Thu Jan 10 20:35:17 2008
+    - Added connection retry
+    - Added addition of values in Setval
+    - Added config online reload
+    - Added access rule
+    - Added cluster and failover
+    - Added lism.schema
+    - Changed internal lock from flock to semaphore
+
+2.1.5 Thu Jan 10 18:26:26 2008
+    - Added connection check in LDAP, SQL
+    - Fixed searching all data bug
+    - Fixed doSync bug
+    - Fixed nosync entry check bug
+    - Fixed rewrite bugs
+    - Changed ldapmap format in LDAP
+    - Supported multibyte uri in LDAP
+
+2.1.4 Fri Dec 14 23:26:59 2007
+    - Fixed attribute value with spaces at the tail
+    - Fixed cmparing with entry includes escape characters in difference synchronization
+    - Added synchronization check in deleting master entries
+
+2.1.3 Sun Nov 25 10:37:34 2007
+    - Added Setval handler
+    - Added readonly
+    - Added synchroniztion order
+    - Added order to handlers
+    - Added allow bind
+    - Enabled multiple objects in on level
+    - Fixed syncdn set in cluster synchronization
+    - Fixed rewrite prehandler bugs
+    - Fixed handler in difference synchronization
+    - Deleted lockdir
+
+2.1.2 Sat Oct 20 15:13:59 2007
+    - Added dn rule in rewrite rule
+    - Added container name in attr tag of SQL object
+    - Added samba utility
+    - Added configuration template
+    - Added dn into script argument in Script handler
+    - Enabled selecting data in difference synchronization
+    - Fixed deleting multibyte attribute values
+    - Fixed fromtbls check bug
+    - Fixed container bug in SQL attributes
+    - Fixed dn with multibyte bug
+    - Fixed processing only one handler
+    - Fixed filter2sql bug
+
+2.1.1 Tue Sep 18 21:59:03 2007
+    - Added match attribute in script execrule
+    - Added MySQL PASSWORD() hash
+    - Added sync attribute check flag
+    - Added entry tag in storage object
+    - Fixed adding too long dn
+    - Fixed attribute delete bug
+
+2.1.0 Wed Aug 29 22:41:44 2007
+    - Added virtual master directory
+    - Added attribute synchronization rule
+    - Change handler structure
+    - Move rewrite to handler
+    - Added rewriteMap to rewrite
+    - Added LDAP rewriteMap
+    - Fixed synchronization bugs
+
+2.0.8 Wed Aug 15 10:41:06 2007
+    - Added synchronization failure log
+    - Added data comparison between master and synchronized storages
+    - add-delete of masterop and syncop devides into add and delete
+    - Fixed userPassword delete bug
+    - Fixed commit and rollback bug in CSV
+
+2.0.7 Sat Jul  7 21:36:34 2007
+    - Added ldap attribute and object class mapping in LDAP
+    - Added Active Directory password hash in LDAP
+    - Added sequence in SQL
+    - Fixed transaction in SQL
+    - Fixed multibyte encoding in SQL
+    - Added special character escape in SQL
+    - Changed object's id config format
+    - Fixed crypt hash of password
+    - move cn=sync entry from suffix of master to lism basedn
+    - Fixed lack of encoding in synchronization
+    - Fixed synchronization rollback bug
+    - Changed log function from Log-Dispatch to Sys-Syslog
+
+2.0.6 Wed May 23 07:22:46 2007
+    - Added synchronization filter
+    - Removed influence of one system down to the others
+    - Fixed multibyte code bug
+    - Fixed parseFilter bug
+    - Fixed addition of invalid object
+    - Fixed CSV module adding entry already exists
+
+2.0.5 Sat May  5 13:56:54 2007
+    - Added conversion of multibyte code
+    - Added audit log message
+    - Enabled using function in rewrite
+    - Fixed replace suffix of filter in LDAP
+    - Changed configuration of loading library
+
+2.0.4 Sun Mar 11 08:58:18 2007
+    - Fixed searching synchronization information
+    - Fixed clear text password change
+    - Fixed SQL,CSV module modifying attribute to no values in openldap 2.3
+
+2.0.3 Mon Feb  5 21:31:20 2007
+    - Added exclusive lock in accessing sync information
+    - Added dispalying entry not synchronized in sync information
+    - Enabled bi-directional synchronization for userPassword
+    - Fixed SQL module exchanging filter to SQL
+    - Fixed adding base64 encoded value
+    - Fixed adding same name objects in differnt subtree
+    - Fixed synchronization of deleting attribute
+
+2.0.2 Sun Jan 14 18:25:12 2007
+    - Added hierarchy structure of objects in storage
+    - Added reconnection to SQL,LDAP servers
+
+2.0.1 Thu Dec 28 15:05:06 2006
+	- Enable selecting operations which are synchronized
+	- Changes in system data are synchronized with other one by setting "sync" in sync information
+
+2.0.0 Sun Dec 24 15:21:23 2006
+	- Add bi-derectional synchronization between master data and other one
+
+1.08  Wed Dec 13 20:29:22 2006
+	- Fixed rewrite isn't done in accessing synchronization directory
+	- Fixed parseFilter doesn't ignore case of attribute's name
+	- Fixed CSV module can't delete all values if attribute's values are specified
+	- Fixed SQL module fail searching by "objectClass=*"
+	- Added configuration check in SQL,CSV module
+
+1.07  Fri Nov 17 22:48:01 2006
+	- Fixed search failed in CSV module if attribute's values don't exist
+	- Fixed add,delete faild in SQL,CSV module if strginfo isn't set
+	- Added tests
+
+1.06  Sat Oct 14 19:48:16 2006
+	- Added rewrite
+	- Added execution rule in Script handler
+	- Enable using perl function as value of storage-specific information
+	- Enable updating several tables at one attirbute
+	- Fixed not start transaction in SQL module
+	- Fixed bad inforamtion of suffix entry in LDAP module
+
+1.05  Sun Oct  1 12:21:15 2006
+	- Fixed bad attributes return when you search several objects
+	- Fixed all values isn't returned in CSV module
+
+1.04  Sat Sep 30 16:45:13 2006
+	- Fixed several search bug
+
+1.03  Sun Aug 27 00:11:43 2006
+	- Fixed replace bug in SQL module
+
+1.02  Tue Aug 22 22:34:55 2006
+	- Added storage-specific information tag in LISM configuration
+
+1.01  Tue Aug 15 00:50:47 2006
+	- Added search in synchronization data tree
+	- Added modrdn function
+
+1.00  Fri Jul 28 19:00:23 2006
+        - Fixed attribute of rdn can't be modified
+	- Fixed SQL module tries to delete values don't exist
+
+0.03  Sun Jul 23 00:49:51 2006
+        - Fixed SQL module fail adding attribute has DN syntax
+        - Fixed LDAP module replacing DN bug
+
+0.02  Sun Jul  9 18:54:34 2006
+        - Added logging
+        - Added handler module and script handler
+
+0.01  Mon May 29 22:54:59 2006
+	- original version; created by h2xs 1.23 with options
+	-Xan LISM

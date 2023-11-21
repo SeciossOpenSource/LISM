@@ -1,12 +1,4 @@
 #!/usr/bin/perl
-#
-#  This code was developped by SECIOSS (http://www.secioss.co.jp/).
-#
-#                 Copyright (C) 2016 SECIOSS, INC.
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU Lesser General Public License
-#  as published by the Free Software Foundation.
 
 use strict;
 use Crypt::SmbHash;
@@ -63,5 +55,22 @@ sub sidToStr
 
     return $result;
 }
+
+=head1 SEE ALSO
+
+L<LISM>
+
+=head1 AUTHOR
+
+Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
+
+=head1 COPYRIGHT AND LICENSE
+
+(c) 2007 Kaoru Sekiguchi
+
+This library is free software; you can redistribute it and/or modify
+it under the GNU LGPL.
+
+=cut
 
 1;

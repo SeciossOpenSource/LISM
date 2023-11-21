@@ -269,7 +269,7 @@ sub _do_modify
             } elsif ($^O ne 'MSWin32') {
                 my @messages;
                 eval {
-                    local $SIG{ALARM} = sub{die;};
+                    local $SIG{ALRM} = sub{die;};
                     alarm($conf->{timeout}[0]);
                     open(CMD, "$cmd; echo status=\$?|");
                     while (<CMD>) {
@@ -362,7 +362,7 @@ sub _do_add
             } elsif ($^O ne 'MSWin32') {
                 my @messages;
                 eval {
-                    local $SIG{ALARM} = sub{die;};
+                    local $SIG{ALRM} = sub{die;};
                     alarm($conf->{timeout}[0]);
                     open(CMD, "$cmd; echo status=\$?|");
                     while (<CMD>) {
@@ -453,7 +453,7 @@ sub _do_delete
                 } elsif ($^O ne 'MSWin32') {
                     my @messages;
                     eval {
-                        local $SIG{ALARM} = sub{die;};
+                        local $SIG{ALRM} = sub{die;};
                         alarm($conf->{timeout}[0]);
                         open(CMD, "$cmd; echo status=\$?|");
                         while (<CMD>) {
@@ -563,7 +563,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

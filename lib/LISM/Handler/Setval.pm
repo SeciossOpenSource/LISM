@@ -6,6 +6,8 @@ use LISM::Constant;
 use Encode;
 use Data::Dumper;
 
+our $lism_master = 'lism_master';
+
 =head1 NAME
 
 LISM::Handler::Setval - Handler to set value
@@ -64,6 +66,10 @@ sub pre_add
                     foreach my $value (@values) {
                         ${$entryStrp}[0] = "${$entryStrp}[0]$attr: $value\n";
                     }
+
+                    if (defined($conf->{role}) && grep(/^$attr$/i, @{$conf->{role}})) {
+                        ${$entryStrp}[0] = "${$entryStrp}[0]setvalRole: $attr=".join(';', @values)."\n";
+                    }
                 }
             }
         }
@@ -80,6 +86,10 @@ sub pre_add
 
                 if (${$dnp} =~ /^$attr=/) {
                     ${$dnp} =~ s/^$attr=[^,]+/$attr=$values[0]/i;
+                }
+
+                if (defined($conf->{role}) && grep(/^$attr$/i, @{$conf->{role}})) {
+                    ${$entryStrp}[0] = "${$entryStrp}[0]setvalRole: $attr=".join(';', @values)."\n";
                 }
             }
         }
@@ -107,6 +117,23 @@ sub pre_add
                 }
             }
         }
+
+        # Set profile
+        if (defined($entry->{profile})) {
+            foreach my $attr (keys %{$entry->{profile}}) {
+                my @values = $self->_getStaticValue($entry->{profile}{$attr}, ${$dnp}, ${$entryStrp}[0]);
+                foreach my $value (@values) {
+                    my $tmpval = $value;
+                    $tmpval =~ s/([.*+?\[\]()|\^\$\\\{\}])/\\$1/g;
+                    if (${$entryStrp}[0] !~ /^$attr:{1,2} $tmpval/mi) {
+                        ${$entryStrp}[0] = "${$entryStrp}[0]$attr: $value\n";
+                    }
+                }
+                if (defined($conf->{role}) && grep(/^$attr$/i, @{$conf->{role}})) {
+                    ${$entryStrp}[0] = "${$entryStrp}[0]setvalRole: $attr=".join(';', @values)."\n";
+                }
+           }
+        }
     }
 
     return LDAP_SUCCESS;
@@ -125,6 +152,10 @@ sub pre_modify
     my $conf = $self->{_config};
     my $dn = ${$dnp};
     my $oldentry = defined($oldentryp) ? ${$oldentryp} : undef;
+    my $master = $self->{lism}->{data}{$lism_master};
+    my $suffix = $self->{lism}->{_config}->{basedn};
+    my ($dsuffix) = ($dn =~ /(ou=[^,]+,$suffix)$/i);
+    my %setval_roles;
 
     if (!defined($conf->{entry})) {
         return LDAP_SUCCESS;
@@ -137,7 +168,7 @@ sub pre_modify
         if (!defined($entry->{op}) || $entry->{op} ne 'modify') {
             next;
         }
-        if (!defined($entry->{replace})) {
+        if (!defined($entry->{replace}) && !defined($entry->{profile})) {
             next;
         }
 
@@ -178,6 +209,113 @@ sub pre_modify
             }
         }
 
+        # Set profile
+        if (defined($entry->{profile}) && $oldentry) {
+            foreach my $attr (keys %{$entry->{profile}}) {
+                my @profiles = ($oldentry =~ /^$attr: (.+)$/gmi);
+                my @new_vals;
+                if (!defined($entry->{filter}) || LISM::Storage->parseFilter($entry->{filterobj}, $entryStr)) {
+                    @new_vals = $self->_getStaticValue($entry->{profile}{$attr}, ${$dnp}, $entryStr);
+                    for (my $i = 0; $i < @new_vals; $i++) {
+                        $new_vals[$i] =~ s/,$master->{suffix}$/,$dsuffix/i;
+                    }
+                }
+                my @old_vals;
+                if (!defined($entry->{filter}) || LISM::Storage->parseFilter($entry->{filterobj}, $oldentry)) {
+                    @old_vals = $self->_getStaticValue($entry->{profile}{$attr}, ${$dnp}, $oldentry);
+                    for (my $i = 0; $i < @old_vals; $i++) {
+                        $old_vals[$i] =~ s/,$master->{suffix}$/,$dsuffix/i;
+                    }
+                }
+
+                my @add_vals;
+                my @del_vals;
+                foreach my $value (@new_vals) {
+                    if (!grep(/^$value$/i, @profiles)) {
+                        push(@add_vals, $value);
+                    }
+                }
+                foreach my $value (@old_vals) {
+                    if (!grep(/^$value$/i, @new_vals) && grep(/^$value$/i, @profiles)) {
+                        push(@del_vals, $value);
+                    }
+                }
+
+                my @values;
+                my $updated = 0;
+                for (my $i = 0; $i < @{$listp};) {
+                    my $j = 0;
+                    my $action = ${$listp}[$i + $j++];
+                    my $key = ${$listp}[$i + $j++];
+                    my @tmpvals;
+                    while (defined(${$listp}[$i + $j]) && ${$listp}[$i + $j] ne "ADD" && ${$listp}[$i + $j] ne "DELETE" && ${$listp}[$i + $j] ne "REPLACE") {
+                        push(@tmpvals, ${$listp}[$i + $j]);
+                        $j++;
+                    }
+                    if ($key =~ /^$attr$/i) {
+                        if ($action eq 'REPLACE') {
+                            foreach my $value (@tmpvals) {
+                                if (!@del_vals || !grep(/^$value$/i, @del_vals)) {
+                                    push(@values, $value);
+                                }
+                            }
+                            foreach my $value (@add_vals) {
+                                if (!grep(/^$value$/i, @values)) {
+                                    push(@values, $value);
+                                }
+                            }
+                        } else {
+                            my @new_profiles = ($entryStr =~ /^$attr: (.+)$/gmi);
+                            foreach my $value (@new_profiles) {
+                                if (!@del_vals || !grep(/^$value$/i, @del_vals)) {
+                                    push(@values, $value);
+                                }
+                            }
+                            foreach my $value (@add_vals) {
+                                if (!grep(/^$value$/i, @values)) {
+                                    push(@values, $value);
+                                }
+                            }
+                        }
+                        splice(@{$listp}, $i, $j, 'REPLACE', $attr, @values);
+                        $updated = 1;
+
+                        if (defined($conf->{role}) && grep(/^$attr$/i, @{$conf->{role}}) && @add_vals) {
+                            if (defined($setval_roles{$attr})) {
+                                push(@{$setval_roles{$attr}}, @add_vals);
+                            } else {
+                                $setval_roles{$attr} = \@add_vals;
+                            }
+                        }
+                        last;
+                    } else {
+                        $i += $j;
+                    }
+                }
+                if (!$updated && (@add_vals || @del_vals)) {
+                    foreach my $value (@profiles) {
+                        if (!@del_vals || !grep(/^$value$/i, @del_vals)) {
+                            push(@values, $value);
+                        }
+                    }
+                    foreach my $value (@add_vals) {
+                        if (!grep(/^$value$/i, @values)) {
+                            push(@values, $value);
+                        }
+                    }
+                    push(@{$listp}, 'REPLACE', $attr, @values);
+
+                    if (defined($conf->{role}) && grep(/^$attr$/i, @{$conf->{role}}) && @add_vals) {
+                        if (defined($setval_roles{$attr})) {
+                            push(@{$setval_roles{$attr}}, @add_vals);
+                        } else {
+                            $setval_roles{$attr} = \@add_vals;
+                        }
+                    }
+                }
+            }
+        }
+
         if (defined($entry->{filter}) && !LISM::Storage->parseFilter($entry->{filterobj}, $entryStr)) {
             next;
         }
@@ -205,7 +343,18 @@ sub pre_modify
                 if (${$dnp} =~ /^$attr=/) {
                     ${$dnp} =~ s/^$attr=[^,]+/$attr=$values[0]/i;
                 }
+
+                if (defined($conf->{role}) && grep(/^$attr$/i, @{$conf->{role}})) {
+                    $setval_roles{$attr} = \@values;
+                }
             }
+        }
+    }
+
+    if (%setval_roles) {
+        push(@{$listp}, 'REPLACE', 'setvalRole');
+        foreach my $attr (keys(%setval_roles)) {
+            push(@{$listp}, "$attr=".join(';', @{$setval_roles{$attr}}));
         }
     }
 
@@ -317,7 +466,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

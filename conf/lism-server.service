@@ -1,0 +1,14 @@
+[Unit]
+Description=LDAP Identity Synchronization Manager server daemon.
+After=syslog.target network.target
+
+[Service]
+Type=forking
+User=ldap
+Group=ldap
+PIDFile=/run/lism/lism-server.pid
+Environment="SLAPD_URLS=ldap://127.0.0.1:3890" "SLAPD_OPTIONS=-f '/opt/secioss/etc/openldap/slapd.conf'"
+ExecStart=/opt/secioss/sbin/lism-server.pl -h ${SLAPD_URLS}  $SLAPD_OPTIONS
+
+[Install]
+WantedBy=multi-user.target

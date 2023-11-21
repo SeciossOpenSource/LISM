@@ -338,7 +338,7 @@ sub modify
             next;
         }
 
-        if ($key eq 'customattribute') {
+        if ($key eq 'customattribute' || $key eq 'setvalrole') {
             next;
         }
 
@@ -508,7 +508,7 @@ sub add
             next;
         }
 
-        if ($key =~ /^(createTimestamp|modifyTimestamp|plainpassword|customattribute)$/i) {
+        if ($key =~ /^(createTimestamp|modifyTimestamp|plainpassword|customattribute|setvalrole)$/i) {
             next;
         }
 
@@ -808,7 +808,7 @@ sub hashPasswd
         # encoding for Active Directory
         $hashpw = '';
         map {$hashpw .= "$_\000"} split(//, "\"$passwd\"");
-    } elsif (defined($hashpw) && $htype =~ /^CRYPT|MD5|SHA|SSHA$/i) {
+    } elsif (defined($hashpw) && $htype =~ /^CRYPT|MD5|SHA|SSHA|SSHA512|PBKDF2_SHA256$/i) {
         $hashpw = "{$htype}$hashpw";
     }
 
@@ -841,36 +841,47 @@ sub _getConnect
         undef($self->{bind});
     }
 
-    for (my $i=0; $i<$RETRY; $i++) {
-        $self->{ldap} = Net::LDAP->new($conf->{uri}[0], timeout => $TIMEOUT);
-        $self->{bind} = Net::LDAP->new($conf->{uri}[0], timeout => $TIMEOUT);
+    my $uri;
+    foreach (@{$conf->{uri}}) {
+        $uri = $_;
+        my $connect = 0;
+        for (my $i=0; $i<$RETRY; $i++) {
+            $self->{ldap} = Net::LDAP->new($uri, timeout => $TIMEOUT);
+            $self->{bind} = Net::LDAP->new($uri, timeout => $TIMEOUT);
 
-        if (!defined($self->{ldap}) || !defined($self->{bind})) {
-            $self->log(level => 'alert', message => "Can't connect $conf->{uri}[0]".($@ ? ": $@" : ''));
+            if (!defined($self->{ldap}) || !defined($self->{bind})) {
+                $self->log(level => 'alert', message => "Can't connect $uri".($@ ? ": $@" : ''));
+                undef($self->{ldap});
+                undef($self->{bind});
+                return -1;
+            }
+
+            $msg = $self->{ldap}->bind($conf->{binddn}[0], password => $conf->{bindpw}[0]);
+            if ($msg->code == LDAP_SUCCESS) {
+                $connect = 1;
+                last;
+            }
+
+            $self->{ldap}->unbind();
+            $self->{bind}->unbind();
             undef($self->{ldap});
             undef($self->{bind});
-            return -1;
-        }
+        
+            if ($msg->code != LDAP_OPERATIONS_ERROR) {
+                last;
+            }
 
-        $msg = $self->{ldap}->bind($conf->{binddn}[0], password => $conf->{bindpw}[0]);
-        if ($msg->code == LDAP_SUCCESS) {
+            $self->log(level => 'warning', message => "Can't bind $conf->{uri}[0] by $conf->{binddn}[0] retry ".($i+1)."/$RETRY: ".$msg->error."(".$msg->code.")");
+        }
+        if ($connect) {
             last;
         }
-        
-        $self->{ldap}->unbind();
-        $self->{bind}->unbind();
-        undef($self->{ldap});
-        undef($self->{bind});
-        
-        if ($msg->code != LDAP_OPERATIONS_ERROR) {
-            last;
-        }
-        
-        $self->log(level => 'warning', message => "Can't bind $conf->{uri}[0] by $conf->{binddn}[0] retry ".($i+1)."/$RETRY: ".$msg->error."(".$msg->code.")");
     }
-    
-    if ($msg->code != LDAP_SUCCESS) {
-        $self->log(level => 'alert', message => "Can't bind $conf->{uri}[0] by $conf->{binddn}[0] failed: ".$msg->error."(".$msg->code.")");
+
+    if (!defined($self->{ldap}) || !defined($self->{bind})) {
+        if (defined($msg)) {
+            $self->log(level => 'alert', message => "Can't bind $uri by $conf->{binddn}[0] failed: ".$msg->error."(".$msg->code.")");
+        }
         return -1;
     }
 
@@ -1355,7 +1366,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

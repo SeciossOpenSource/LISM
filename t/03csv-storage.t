@@ -46,7 +46,7 @@ compare_ldif("0302",$mesg,$mesg->sorted);
 
 $mesg = $ldap->modify($dn,
                        changes => [
-                         replace => ['cn' => '更新ユーザ0301'],
+                         replace => ['cn' => '更新ユーザー0301'],
                          replace => ['mail' => 'user03@lism.org'],
                          replace => ['telephoneNumber' => ['01-2345-6789', '34-5678-9012']],
                          replace => ['businessCategory' => ['cn=Admin,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com', 'cn=Guest,ou=App,ou=Roles,ou=CSV,dc=lism,dc=com']],
@@ -92,16 +92,16 @@ compare_ldif("0311",$mesg,$mesg->sorted);
 $mesg = $ldap->search(base => "uid=user0301,ou=Tech,ou=IT,ou=People,$CSVDN", filter => 'objectClass=*', typesonly => 1, attrs => ['cn', 'userPassword']);
 compare_ldif("0312",$mesg,$mesg->sorted);
 
-$mesg = $ldap->search(base => "uid=user0301,ou=Tech,ou=IT,ou=People,$CSVDN", filter => 'cn=更新ユーザ0301', attrs => ['cn', 'modifyTimestamp']);
+$mesg = $ldap->search(base => "uid=user0301,ou=Tech,ou=IT,ou=People,$CSVDN", filter => 'cn=更新ユーザー0301', attrs => ['cn', 'modifyTimestamp']);
 $timestamp = ($mesg->entries)[0]->get_value('modifyTimestamp');
 $date = strftime("%Y%m%d", localtime);
 ok($timestamp =~ /^$date.*Z$/, "modifyTimestamp");
 
 # Compare
-$mesg = $ldap->compare($dn, attr => 'cn', value => '更新ユーザ0301');
+$mesg = $ldap->compare($dn, attr => 'cn', value => '更新ユーザー0301');
 ok($mesg->code == 6, "compare uid=user0301 true");
 
-$mesg = $ldap->compare($dn, attr => 'cn', value => '更新ユーザ0300');
+$mesg = $ldap->compare($dn, attr => 'cn', value => '更新ユーザー0300');
 ok($mesg->code == 5, "compare uid=user0301 false");
 
 
@@ -135,14 +135,14 @@ $mesg = $ldap->search(base => $CSVDN, filter => 'uid=user\(\)');
 compare_ldif("0320",$mesg,$mesg->sorted);
 
 # Multi-byte characters
-$mesg = $ldap->modify("uid=ユーザ0305,ou=Tech,ou=IT,ou=People,$CSVDN", replace => {'mail' => 'user0305@lism.org'});
+$mesg = $ldap->modify("uid=ユーザー0305,ou=Tech,ou=IT,ou=People,$CSVDN", replace => {'mail' => 'user0305@lism.org'});
 
-$mesg = $ldap->search(base => $CSVDN, filter => 'uid=ユーザ0305');
+$mesg = $ldap->search(base => $CSVDN, filter => 'uid=ユーザー0305');
 compare_ldif("0321",$mesg,$mesg->sorted);
 
-$mesg = $ldap->delete("uid=ユーザ0305,ou=Tech,ou=IT,ou=People,$CSVDN");
-$mesg = $ldap->search(base => $CSVDN, filter => 'uid=ユーザ0305');
-ok($mesg->count == 0, "delete uid=ユーザ0305");
+$mesg = $ldap->delete("uid=ユーザー0305,ou=Tech,ou=IT,ou=People,$CSVDN");
+$mesg = $ldap->search(base => $CSVDN, filter => 'uid=ユーザー0305');
+ok($mesg->count == 0, "delete uid=ユーザー0305");
 
 #  Recursive object
 # Add
