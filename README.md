@@ -10,203 +10,125 @@ Active Directory、LDAP、RDBMSや、CSVファイル出力、RESTful API、SOAP 
 ID情報の管理は、基本的にマスタデータに対して操作のみの一元管理を実現します。
 
 ## 動作環境
-* OS：CentOS7、Redhat Enterprise Linux 7
-* ミドルウェア：Apache、OpenLDAP、PHP、perl、Memcached
+* OS：Rockey Linux8、Redhat Enterprise Linux 8
 
 ## インストール
-### 事前準備
-EPELのリポジトリを追加します。
-* CentOS7の場合  
-`# yum install epel-release`
-* Redhat Enterprise Linux 7の場合  
-`# rpm -ivh http://ftp.riken.jp/Linux/fedora/epel/epel-release-latest-7.noarch.rpm`
+#### selinux無効化
+setenforce 0
+*/etc/selinux/config でdisabledに変更も
 
-SELinuxを無効にします。  
-一時的に無効にするには以下を実行して下さい。
+#### EPEL有効化
+`# dnf install dnf-plugins-core`
 
-`# setenforce 0`
+`# dnf install epel-release`
 
-それから、/etc/selinux/configのSELINUXをpermissive、またはdisalbedに変更して下さい。
+`# dnf config-manager --set-enabled powertools`
 
-### LISM用OpenLDAPサーバの設定
-LISMの管理用LDAPサーバとして利用するための設定を行います。  
-パッケージファイル内にある「secioss_ldif」フォルダ以下をOpneLDAPをインストールしたサーバにコピー（ディレクトリは何処でも構いません）して下さい。  
-「secioss_ldif」フォルダ内には5つのldifファイルがあります。このうち4つのファイルを編集し、LDAPの初期設定を行います。  
+### LISM用LDAPサーバの設定
+LISMの管理用LDAPとして利用するためのスキーマ設定とエントリーを追加します。
 
-1.admin.ldif
-2.schema.ldif
-3.db.ldif
-4.module.ldif
+#### 389DSサーバーインストール
+`# dnf module enable 389-ds -y`
 
-OpenLDAPの管理者パスワードをadmin.ldifの「olcRootPW」に記述して、以下のコマンドを実行して下さい。
+`# dnf install -y 389-ds-base 389-ds-base-legacy-tools`
 
-`# ldapmodify -Y EXTERNAL -H ldapi:// -f admin.ldif`
+以下のコマンドで基本設定を行ってください。
 
-スキーマを以下のコマンドを実行して、適用して下さい。
+`# setup-ds.pl`
 
-`# ldapmodify -Y EXTERNAL -H ldapi:// -f schema.ldif`
+###### schema拡張
+以下Directory ServerのIDを389dsとした場合のコマンドを記載します。slapd-389dsの部分は設定したIDに適宜置き換えて実行してください。
 
-OpenLDAPに対する一部初期設定を行います。  
-db.ldif内にあるsuffixのdc=example,dc=comは、構築したいベースDNに変更して下さい。  
-それから、/etc/openldap/certsにLDAPのサーバー証明書（openldap.crt）と鍵（openldap.key）のファイルを配置して下さい。
+`# cp /opt/secioss/ldap/389ds/schema/50secioss.ldif /etc/dirsrv/slapd-389ds/schema/`
 
-`# sed -i -e "s/dc=example,dc=com/dc=lism,dc=ldap/g" db.ldif`
+`# systemctl restart dirsrv@389ds`
 
-以下のコマンドを実行して、適用して下さい。
+###### サーバー設定
+`# cd /opt/secioss/ldap/389ds/ldif/`
 
-`# ldapmodify -Y EXTERNAL -H ldapi:// -f db.ldif`
+`# ldapmodify -H ldap://localhost -D {RootDN} -w {パスワード} -f 389ds.ldif`
 
-必要なモジュールの設定を以下のコマンドを実行して、適用して下さい。
+`# ldapmodify -H ldap://localhost -D {RootDN} -w {パスワード} -f 389ds_index.ldif`
 
-`# ldapmodify -Y EXTERNAL -H ldapi:// -f module.ldif`
+`# systemctl restart dirsrv@389ds`
 
-全ての設定が完了したら、OpenLDAPを再起動します。
 
-`# systemctl restart slapd`
+###### 基本データ登録
+`# cd /opt/secioss/ldap/389ds/ldif/`
 
-次に、LDAPサーバに以下のLDIFファイルを登録して下さい。  
-suffixのdc=example,dc=com、"dc: example"は、OpenLDAPの設定に合わせて変更して下さい。
+`# cp init.389ds.xxxx.ldif modify.ldif`
 
-    dn: dc=example,dc=com
-    changetype: add
-    objectClass: domain
-    dc: example
-    
-    dn: o=System,dc=example,dc=com
-    changetype: add
-    objectClass: organization
-    objectClass: seciossTenant
-    objectClass: seciossPwdPolicy
-    o: System
-    pwdAttribute: 2.5.4.35
-    
-    dn: ou=People,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: People
-    
-    dn: ou=Groups,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Groups
-    
-    dn: ou=Organizations,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Organizations
-    businessCategory: invisible
-    
-    dn: ou=Metadata,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Metadata
-    
-    dn: ou=Profiles,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Profiles
-    
-    dn: ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Config
-    
-    dn: ou=Autologin,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Autologin
-    
-    dn: ou=Gateway,ou=Config,dc=example,dc=com
-    changetype: add
-    objectClass: organizationalUnit
-    ou: Gateway
+BaseDNを「dc=test,dc=ldap」に指定したときのコマンドです。設定したBaseDNに置き換えて実行してください。
 
-### LISMのインストール
-githubのpackages/LISM-4.x.x-x.x86_64.tar.gzを展開して、インストールスクリプト(install.sh)を実行して下さい。  
+`# sed -i -e "s/dc=example,dc=com/dc=test,dc=ldap/g" modify.ldif`
 
-`# ./install.sh install`
+`# ldapmodify -x -H ldap://localhost -D {RootDN} -f modify.ldif`
 
-必要なパッケージが不足している場合、一覧表示され、自動的にインストールします。
+### LISMインストール
+githubのpackages/LISM-5.x.x-x.x86_64.tar.gzを展開して、インストールスクリプト(install.sh)を実行して下さい。  
+`# tar -zxcf LISM-5.xxxx.tar.gz`
 
-    eventlogが必要です。
-    httpdが必要です。
-    ・・・・
-    yumリポジトリから必須パッケージをインストールします。よろしいですか？ [yes]
-    yes
+`# cd LISM-xxxxx`
 
-### 初期設定
-インストール完了後、セットアップツール(setup.pl)により初期設定を行います。
+`# ./install install`
 
-#### FQDNの設定
-サーバのFQDNを設定します。
+#### lism-server
+`# cp /opt/secioss/etc/openldap/slapd.conf.lism /opt/secioss/etc/openldap/slapd.conf`
 
-    FQDNの設定を行います。
-    FQDNを入力してください。(default: …) 
-    lism.example.com
-    FQDNの設定が完了しました。
+`# chown ldap:ldap /opt/secioss/etc/openldap/slapd.conf`
 
-#### visudoの設定変更
-LISMがsudoコマンドを実行するための設定を行います。
+`# cp /opt/secioss/etc/lism-server.service /etc/systemd/system`
 
-    sudoの設定変更を行います。
-    requirettyを無効にします。よろしいですか？ [yes/no](default: yes)
-    yes
-    apacheユーザにコマンド実行時の昇格権限を付与します。よろしいですか？ [yes/no](default: yes)
-    yes
-    visudoの設定変更が完了しました。
+lism-server起動
 
-#### パスワード辞書ファイルの作成
-パスワードの強度チェックに使用する辞書ファイルを作成します。
+`# systemctl start lism-server`
 
-    パスワード辞書ファイルを作成します。
-    yumリポジトリから最新の辞書ファイルをインストールします。よろしいですか？[yes/no](default: yes)
-    yes
-    パスワード辞書ファイルの作成が完了しました。
 
-#### LDAPサーバへの接続設定
-LISMが接続するLDAPサーバの設定を行います。
+## 動作確認
 
-    LDAPサーバの設定を行います。
-    LDAP-pathを入力してください。(default: ldap://localhost)
-    ldaps://sime.ldap.com
-    BaseDNを入力してください。(default: dc=example,dc=com)
-    dc=sime,dc=ldap,dc=com
-    BindDNを入力してください。(default: cn=Manager,dc=example,dc=com)
-    cn=Manager,dc=sime,dc=ldap,dc=com
-    Passwordを入力してください。
-    ******
-    LDAPサーバへの接続設定が完了しました。
+#### CSV同期ディレクトリ作成
+`# mkdir /opt/secioss/var/lib/tenantcsv`
 
-#### memcachedサーバへの接続確認
-memcachedサーバへの接続確認を行います。接続確認前にmemcachedを起動しておいて下さい。  
-`# systemctl start memcached`
+`# chown ldap:ldap /opt/secioss/var/lib/tenantcsv`
 
-localhostでmemcachedを起動している場合は、「localhost:11211」を入力して下さい。
+#### 同期用DB
+`# dnf install mariadb mariadb-server`
 
-    memcachedサーバの設定をします。
-    memcachedサーバを入力してください。カンマ区切りで複数指定できます。(default: localhost:11211)
-    enter
-    memcachedサーバへの接続設定が完了しました。
+`# systemctl start mariadb`
 
-#### 管理者パスワードの設定
-LISMのWeb管理コンソールにログインする管理アカウント「admin」のパスワードを設定します。
+`# mysql`
 
-    LISM 管理者パスワードを設定します。
-    管理者パスワードを入力してください。
-    管理者パスワード(再入力)を入力してください。
-    ******
-    管理者パスワードの設定が完了しました。
+`> CREATE DATABASE sample;`
 
-#### サービスの再起動
-LISMで利用するデーモンの再起動を行います。
+`> CREATE TABLE user(user_id VARCHAR(64) PRIMARY KEY, emp_code VARCHAR(32), last_name VARCHAR(32), first_name VARCHAR(32), mail VARCHAR(64));`
 
-    httpdを再起動しますか？ [yes/no](default: yes)
-    yes
-    openldap-lismを再起動しますか？ [yes/no](default: yes)
-    yes
+`> CREATE TABLE password(id INT AUTO_INCREMENT PRIMARY KEY, user_id VARCHAR(64), password TINYTEXT, change_date DATETIME, delete_flag TINYINT);`
 
-#### サービスの停止
-LISMで利用するデーモンを停止します。
+`> CREATE USER "admin"@"localhost" IDENTIFIED BY adminpass;`
 
-## Web 管理コンソール
-Web 管理コンソールの使い方については、docsの下の「LISM_管理者ガイド」をご覧ください。
+#### 同期データ準備
+`# vi /opt/secioss/var/lib/tenantcsv/organization.csv`
+
+> 組織,
+
+`# vi /opt/secioss/var/lib/tenantcsv/user.csv`
+
+> yamada,1001,山田,太郎,ヤマダ,タロウ,yamada@example.com,active,Passwd01,組織
+
+#### CSV => MASTER 差分確認
+`# /opt/secioss/sbin/lismsync -f '(objectClass=organizationalUnit)' -d CSV read master`
+
+`# /opt/secioss/sbin/lismsync -f '(objectClass=seciossIamAccount)' -d CSV read master`
+
+#### CSV => MASTER 差分更新
+`# /opt/secioss/sbin/lismsync -f '(objectClass=organizationalUnit)' -d CSV update master`
+
+`# /opt/secioss/sbin/lismsync -f '(objectClass=seciossIamAccount)' -d CSV update master`
+
+#### MASTER => DB 差分確認
+`# /opt/secioss/sbin/lismsync -f '(objectClass=seciossIamAccount)' -d DB read cluster`
+
+#### MASTER => DB 差分更新
+`# /opt/secioss/sbin/lismsync -f '(objectClass=seciossIamAccount)' -d DB update cluster`
+
+*CSV,DBの部分は/opt/secioss/etc/lism.confのDataのnameの値を指定しています。
