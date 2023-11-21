@@ -1,9 +1,11 @@
 package LISM::Storage;
 
 use strict;
+use Module::Load qw(load);
 use LISM::Constant;
 use Digest::MD5;
 use Digest::SHA1;
+use Digest::SHA qw(hmac_sha1 hmac_sha256 hmac_sha512);
 use Crypt::CBC;
 use MIME::Base64;
 use POSIX;
@@ -11,9 +13,13 @@ use Encode;
 use Scalar::Util qw(weaken);
 use Data::Dumper;
 if ($^O ne 'MSWin32') {
-    eval "use Sys::Syslog";
+    eval "load(Secioss::Auth::Util, 'openlog', 'syslog')";
+    if ($@) {
+        load(Sys::Syslog, 'openlog', 'syslog');
+    }
+    use Sys::Syslog qw(:macros);
 } else {
-    eval "use Log::Dispatch::FileRotate";
+    load(Log::Dispatch::FileRotate);
 }
 
 our $controlAttr = 'lismControl';
@@ -628,9 +634,7 @@ sub log
 
     if ($^O ne 'MSWin32') {
         openlog('LISM', 'pid', $self->{lism}->{_config}->{syslogfacility});
-            setlogmask(Sys::Syslog::LOG_UPTO(Sys::Syslog::xlate($conf->{sysloglevel})));
         syslog($p{'level'}, $p{'message'});
-        closelog();
     } else {
         $self->{log}->log(level => $p{'level'}, message => strftime("%Y/%m/%d %H:%M:%S", localtime(time))." ".$p{'message'}."\n");
     }
@@ -642,7 +646,49 @@ sub log
 
 =pod
 
-=head2 hashPasswd($passwd, $salt)
+=head2 cmpPasswd($passwd, $hashedpwd, $pwhash)
+
+compare the password with hashed password.
+
+=cut
+
+sub cmpPasswd
+{
+    my $self = shift;
+    my ($passwd, $hashedpwd, $pwhash) = @_;
+
+    my $oldhash;
+    my $newhash;
+    if ($pwhash eq 'SSHA' || $pwhash eq 'SSHA512') {
+        my $hash_length = $pwhash eq 'SSHA512' ? 64 : 20;
+        my $salt = substr(decode_base64($hashedpwd), $hash_length);
+        $oldhash = $hashedpwd;
+        $newhash = $self->hashPasswd($passwd, $salt, $pwhash);
+    } elsif ($pwhash eq 'PBKDF2_SHA256') {
+        my $iter_length = 4;
+        my $key_length = 256;
+        my $hash = decode_base64($hashedpwd);
+        my $iter_bytes = substr($hash, 0, $iter_length);
+        my $iter = unpack("N1", $iter_bytes);
+        my $salt = substr($hash, $iter_length, $key_length * -1);
+        $oldhash = substr($hash, $key_length * -1);
+        $newhash = $self->pbkdf2('SHA256', $passwd, $salt, $iter);
+    } elsif ($pwhash eq 'CRYPT') {
+        my $salt = substr($hashedpwd, 0, 2);
+        $oldhash = $hashedpwd;
+        $newhash = $self->hashPasswd($passwd, $salt, $pwhash);
+    } else {
+        $oldhash = $hashedpwd;
+        $newhash = $self->hashPasswd($passwd, undef, $pwhash);
+    }
+    $newhash =~ s/\n$//;
+
+    return $oldhash eq $newhash;
+}
+
+=pod
+
+=head2 hashPasswd($passwd, $salt, $pwhash)
 
 hash the password if it isn't done.
 
@@ -651,13 +697,20 @@ hash the password if it isn't done.
 sub hashPasswd
 {
     my $self = shift;
-    my ($passwd, $salt) = @_;
-    my $conf = $self->{_config};
+    my ($passwd, $salt, $pwhash) = @_;
+
+    if (!defined($pwhash)) {
+        my $conf = $self->{_config};
+        $pwhash = $conf->{hash};
+    }
 
     my $hashpw;
-    my ($htype, $otype, $num) = split(/:/, $conf->{hash});
+    my $iter = 2048;
+    my ($htype, $otype, $num) = split(/:/, $pwhash);
     if (!$num) {
         $num = 1;
+    } else {
+        $iter = $num;
     }
 
     my ($pwhtype) = ($passwd =~ /^\{([^\}]+)\}/);
@@ -679,7 +732,7 @@ sub hashPasswd
         return $passwd;
     }
 
-    if ($htype =~ /^(CRYPT|MD5|SHA|SSHA)$/i && Encode::is_utf8($passwd)) {
+    if ($htype =~ /^(CRYPT|MD5|SHA|SSHA|SSHA512|PBKDF2_SHA256)$/i && Encode::is_utf8($passwd)) {
         $passwd = encode('utf8', $passwd);
     }
 
@@ -690,6 +743,13 @@ sub hashPasswd
                 $salt = Crypt::CBC->random_bytes(4);
             }
             my $ctx = Digest::SHA1->new;
+            $ctx->add($passwd.$salt);
+            $hashpw = encode_base64($ctx->digest.$salt);
+        } elsif ($htype =~ /^SSHA512$/i) {
+            if (!$salt) {
+                $salt = Crypt::CBC->random_bytes(8);
+            }
+            my $ctx = Digest::SHA->new(512);
             $ctx->add($passwd.$salt);
             $hashpw = encode_base64($ctx->digest.$salt);
         } elsif ($htype =~ /^CRYPT$/i) {
@@ -714,6 +774,12 @@ sub hashPasswd
             } else {
                 $hashpw = $ctx->b64digest.'=';
             }
+        } elsif ($htype =~ /^PBKDF2_SHA256$/i) {
+            if (!$salt) {
+                $salt = Crypt::CBC->random_bytes(64);
+            }
+            my $hash = $self->pbkdf2('SHA256', $passwd, $salt, $iter);
+            return encode_base64(pack("N1", $iter).$salt.$hash);
         } else {
             $hashpw = $passwd;
         }
@@ -721,6 +787,63 @@ sub hashPasswd
     }
 
     return $hashpw;
+}
+ 
+
+=pod
+
+=head2 pbkdf2($algo, $str, $salt, $iter);
+
+hash the string with PBKDF2
+
+=cut
+
+sub pbkdf2
+{
+    my $self = shift;
+    my ($algo, $str, $salt, $iter) = @_;
+
+    my $hash_len;
+    my $key_len;
+    if ($algo eq 'SHA256') {
+        $hash_len = 32;
+        $key_len = 256;
+    } elsif ($algo eq 'SHA512') {
+        $hash_len = 64;
+        $key_len = 512;
+    } else {
+        $hash_len = 20;
+        $key_len = 160;
+    }
+    my $m = int($key_len / $hash_len);
+    if ($key_len % $hash_len != 0) {
+        $m += 1;
+    }
+
+    my $hash = '';
+    for (my $i = 1; $i <= $m; $i++) {
+        my $u = "";
+        my $t = "";
+        for (my $j = 0; $j < $iter; $j++) {
+            if (!$u) {
+                $u = $salt.pack("N1", $i);
+            }
+            if ($algo eq 'SHA256') {
+                $u = hmac_sha256($u, $str);
+            } elsif ($algo eq 'SHA512') {
+                $u = hmac_sha512($u, $str);
+            } else {
+                $u = hmac_sha1($u, $str);
+            }
+            if (!$t) {
+                $t = $u;
+            } else {
+                $t ^= $u;
+            }
+        }
+        $hash .= $t;
+    }
+    return $hash;
 }
 
 =pod
@@ -1780,7 +1903,7 @@ sub _pwdFormat
         my $passwd = $1;
         my ($htype, $otype) = split(/:/, $conf->{hash});
 
-        if ($htype =~ /^CRYPT|MD5|SHA|SSHA$/i) {
+        if ($htype =~ /^CRYPT|MD5|SHA|SSHA|SSHA512|PBKDF2_SHA256$/i) {
             if ($otype =~ /^hex$/i && $htype =~ /^MD5|SHA$/i) {
                 $passwd = encode_base64(pack("H*", $passwd), '');
             }
@@ -1906,6 +2029,31 @@ sub _unescapedn
     return $dn;
 }
 
+sub _lock
+{
+    my $self = shift;
+    my ($file) = @_;
+    my $conf = $self->{lism}->{_config};
+
+    my $file_create = -f $file ? 0 : 1;
+
+    my $lock;
+    if (!open($lock, "> $file")) {
+        return;
+    }
+
+    flock($file, 2);
+
+    if ($file_create) {
+        chmod(0660, $file);
+        if (defined($conf->{syncdiruid})) {
+            chown($conf->{syncdiruid}, $conf->{syncdirgid}, $file);
+        }
+    }
+
+    return $lock;
+}
+
 =head1 SEE ALSO
 
 L<LISM>
@@ -1916,7 +2064,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

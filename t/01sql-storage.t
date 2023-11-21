@@ -47,7 +47,7 @@ compare_ldif("0102",$mesg,$mesg->sorted);
 
 $mesg = $ldap->modify($dn,
                         changes => [
-                          replace => ['cn' => '\'更新\'ユーザ0101'],
+                          replace => ['cn' => '\'更新\'ユーザー0101'],
                           replace => ['mail' => 'user0101@lism.org'],
                           replace => ['telephoneNumber' => ['01-2345-6789', '34-5678-9012']],
                           replace => ['facsimileTelephoneNumber' => ['01-2345-6789', '34-5678-9012']],
@@ -94,17 +94,17 @@ compare_ldif("0111",$mesg,$mesg->sorted);
 $mesg = $ldap->search(base => "uid=user0101,ou=Tech,ou=IT,ou=People,$SQLDN", filter => 'objectClass=*', typesonly => 1, attrs => ['cn', 'userPassword']);
 compare_ldif("0112",$mesg,$mesg->sorted);
 
-$mesg = $ldap->search(base => "uid=user0101,ou=Tech,ou=IT,ou=People,$SQLDN", filter => 'cn=\'更新\'ユーザ0101', attrs => ['cn', 'modifyTimestamp']);
+$mesg = $ldap->search(base => "uid=user0101,ou=Tech,ou=IT,ou=People,$SQLDN", filter => 'cn=\'更新\'ユーザー0101', attrs => ['cn', 'modifyTimestamp']);
 $timestamp = ($mesg->entries)[0]->get_value('modifyTimestamp');
 $date = strftime("%Y%m%d", localtime);
 
 ok($timestamp =~ /^$date.*Z$/, "modifyTimestamp");
 
 # Compare
-$mesg = $ldap->compare($dn, attr => 'cn', value => '\'更新\'ユーザ0101');
+$mesg = $ldap->compare($dn, attr => 'cn', value => '\'更新\'ユーザー0101');
 ok($mesg->code == 6, "compare uid=user0101 true");
 
-$mesg = $ldap->compare($dn, attr => 'cn', value => '更新ユーザ0100');
+$mesg = $ldap->compare($dn, attr => 'cn', value => '更新ユーザー0100');
 ok($mesg->code == 5, "compare uid=user0101 false");
 
 

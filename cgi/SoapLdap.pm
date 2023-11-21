@@ -288,4 +288,21 @@ sub delete
     return [$msg->code, $msg->error];
 }
 
+=head1 SEE ALSO
+
+L<LISM>
+
+=head1 AUTHOR
+
+Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
+
+=head1 COPYRIGHT AND LICENSE
+
+(c) 2008 Kaoru Sekiguchi
+
+This library is free software; you can redistribute it and/or modify
+it under the GNU LGPL.
+
+=cut
+
 1;

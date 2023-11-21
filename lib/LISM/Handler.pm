@@ -1,6 +1,7 @@
 package LISM::Handler;
 
 use strict;
+use Module::Load qw(load);
 use URI;
 use Net::LDAP;
 use LISM::Constant;
@@ -9,9 +10,13 @@ use Encode;
 use Scalar::Util qw(weaken);
 use Data::Dumper;
 if ($^O ne 'MSWin32') {
-    eval "use Sys::Syslog";
+    eval "load(Secioss::Auth::Util, 'openlog', 'syslog')";
+    if ($@) {
+        load(Sys::Syslog, 'openlog', 'syslog');
+    }
+    use Sys::Syslog qw(:macros);
 } else {
-    eval "use Log::Dispatch::FileRotate";
+    load(Log::Dispatch::FileRotate);
 }
 
 =head1 NAME
@@ -328,11 +333,7 @@ sub log
 
     if ($^O ne 'MSWin32') {
         openlog('LISM', 'pid', $self->{lism}->{_config}->{syslogfacility});
-        if ($conf->{sysloglevel} ne 'info') {
-            setlogmask(Sys::Syslog::LOG_UPTO(Sys::Syslog::xlate($conf->{sysloglevel})));
-        }
         syslog($p{'level'}, $p{'message'});
-        closelog();
     } else {
         $self->{log}->log(level => $p{'level'}, message => strftime("%Y/%m/%d %H:%M:%S", localtime(time))." ".$p{'message'}."\n");
     }
@@ -373,6 +374,16 @@ sub _checkConfig
                                                      max => $rotatenum);
     }
 
+    if (defined($conf->{libload})) {
+        foreach my $lib (@{$conf->{libload}}) {
+            eval "do \'$lib\'";
+            if ($@) {
+                $self->log(level => 'alert', message => "setval do require $lib: $@");
+                return 1;
+            }
+        }
+    }
+    
     return 0;
 }
 
@@ -749,6 +760,21 @@ sub _path2dn
     return $dn;
 }
 
+sub _doFunction
+{
+    my $self = shift;
+    my ($function) = @_;
+    my $value;
+
+    eval "\$value = $function";
+    if ($@) {
+        $self->log(level => 'err', message => "Function $function failed: $@");
+        return $value;
+    }
+
+    return $value;
+}
+
 =head1 SEE ALSO
 
 L<LISM>
@@ -759,7 +785,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

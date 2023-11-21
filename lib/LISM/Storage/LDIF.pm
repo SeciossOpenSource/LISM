@@ -349,7 +349,7 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
 
 This library is free software; you can redistribute it and/or modify
 it under the GNU LGPL.

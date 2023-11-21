@@ -9,65 +9,12 @@
 #  as published by the Free Software Foundation.
 
 use strict;
-use Time::Local;
-use Time::HiRes qw(gettimeofday);
-use POSIX;
 use Encode;
 use MIME::Base64;
+use Time::HiRes qw(gettimeofday);
 use Data::Dumper;
 
-sub date2time
-{
-    my ($date) = @_;
-
-    if (!defined($date)) {
-        return time;
-    }
-
-    my ($year, $mon, $day, $hour, $min, $sec) = ($date =~ /^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})Z/);
-
-    my $time = timelocal($sec, $min, $hour, $day, $mon - 1, $year);
-
-    return $time;
-}
-
-sub time2date
-{
-    my ($time, $format) = @_;
-
-    if (!defined($time)) {
-        $time = time;
-    }
-
-    if ($format) {
-        return strftime($format, localtime($time));
-    } else {
-        return strftime("%Y%m%d%H%M%S", localtime($time))."Z";
-    }
-}
-
-sub getValue
-{
-    my ($entryStr, $attr, $default, $escape) = @_;
-
-    my $value = ($entryStr =~ /^$attr:\:? +(.*)$/mi)[0];
-    if (!defined($value) && defined($default)) {
-        $value = $default;
-    }
-    if ($value && $escape) {
-        $value =~ s/"/\\22/g;
-        $value =~ s/#/\\23/g;
-        $value =~ s/\+/\\2B/g;
-        $value =~ s/,/\\2C/g;
-        $value =~ s/\//\\2F/g;
-        $value =~ s/;/\\3B/g;
-        $value =~ s/</\\3C/g;
-        $value =~ s/>/\\3E/g;
-        $value =~ s/=/\\3D/g;
-    }
-
-    return $value;
-}
+use LISM::Util qw(date2time time2date getValue getFileContents randString  encrypt3des decrypt3des);
 
 sub getModValue
 {
@@ -182,59 +129,13 @@ sub strmap
     return $str;
 }
 
-sub getFileContents
-{
-    my ($file) = @_;
-    my $contents = '';
-
-    if (!-f $file) {
-        return '';
-    }
-
-    open(FILE, "<$file") || return '';
-
-    while (<FILE>) {
-        $contents .= $_;
-    }
-
-    return $contents;
-}
-
-sub randString
-{
-    my $num = shift;
-    my $string;
-    my @chars;
-
-    if ($num !~ /[0-9]/) {
-        return undef;
-    }
-
-    foreach my $arg (@_) {
-        if (my ($ch1, $ch2) = ($arg =~ /^['"]?(.?)['"]?\.\.['"]?(.?)['"]?/)) {
-            push(@chars,($ch1..$ch2));
-        } elsif (length($arg) == 1) {
-            push(@chars, $arg);
-        }
-    }
-
-    my ($sec, $microsec) = gettimeofday();
-    srand($microsec);
-
-    for (my $i = 0; $i < $num; $i++) {
-        $string .= $chars[int(rand() * @chars)];
-    }
-
-    return $string;
-}
-
 sub regmatch
 {
-    my ($match, $str) = @_;
+    my ($match, $str, $default) = @_;
 
     my (@vals) = ($str =~ /$match/gi);
     if (!@vals) {
-        $vals[0] = '';
+        $vals[0] = $default ? $default : '';
     }
 
     return @vals;
@@ -447,5 +348,22 @@ sub replaceAttrVals
        return @values;
     }
 }
+
+=head1 SEE ALSO
+
+L<LISM>
+
+=head1 AUTHOR
+
+Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
+
+=head1 COPYRIGHT AND LICENSE
+
+(c) 2006 Kaoru Sekiguchi
+
+This library is free software; you can redistribute it and/or modify
+it under the GNU LGPL.
+
+=cut
 
 1;

@@ -1,5 +1,7 @@
+Changes
 Makefile.PL
 MANIFEST
+README
 test.cfg
 t/common.pl
 t/00lism.t
@@ -238,6 +240,7 @@ lib/LISM/Server.pm
 lib/LISM/Storage.pm
 lib/LISM/Handler.pm
 lib/LISM/Constant.pm
+lib/LISM/Util.pm
 lib/LISM/Storage/CSV.pm
 lib/LISM/Storage/LDAP.pm
 lib/LISM/Storage/SQL.pm

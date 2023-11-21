@@ -153,4 +153,21 @@ sub searchLism
     return ($rc, ldap_error_text($rc), \@match_keys, @match_entries);
 }
 
+=head1 SEE ALSO
+
+L<LISM>
+
+=head1 AUTHOR
+
+Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
+
+=head1 COPYRIGHT AND LICENSE
+
+(c) 2008 Kaoru Sekiguchi
+
+This library is free software; you can redistribute it and/or modify
+it under the GNU LGPL.
+
+=cut
+
 1;

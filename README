@@ -1,0 +1,30 @@
+LISM version 2.3.13
+=================
+
+When you use several RDB, LDAP and the other system, you will have a hard time synchronizing their data. LISM(LDAP Identity Synchronization Manager) solves this problem. LISM eables to update the all systems to update LDAP server of LISM.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+- Net::LDAP
+- DBI
+- XML::Simple
+- Digest::SHA1
+
+COPYRIGHT AND LICENCE
+
+(c) 2006 Kaoru Sekiguchi
+
+This library is free software; you can redistribute it and/or modify
+it under the GNU LGPL.
+

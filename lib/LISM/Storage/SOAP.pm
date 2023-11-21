@@ -194,10 +194,14 @@ sub search
     $base =~ s/$self->{suffix}$/$conf->{basedn}[0]/i;
     $filterStr =~ s/$self->{suffix}(\)*)/$conf->{basedn}[0]$1/gi;
     my $count;
+    my $matching_rule = '2.5.13.3';
     my $offset = 1;
     my $key = 'cn';
     if (defined($conf->{control}) && defined($conf->{control}[0]->{vlv})) {
         $count = $conf->{control}[0]->{vlv}[0]->{count};
+        if (defined($conf->{control}[0]->{vlv}[0]->{rule})) {
+            $matching_rule = $conf->{control}[0]->{vlv}[0]->{rule};
+        }
     }
     if (grep(/^uid$/, @attrs)) {
         $key = 'uid';
@@ -206,7 +210,7 @@ sub search
     while (1) {
         my $soapfilter = $filterStr;
         if ($count) {
-            $soapfilter = "(&(lismControl=vlv=$count,$offset&sort=$key:2.5.13.3)$filterStr)";
+            $soapfilter = "(&(lismControl=vlv=$count,$offset&sort=$key:$matching_rule)$filterStr)";
         }
 
         my $res;
@@ -772,7 +776,10 @@ Kaoru Sekiguchi, <sekiguchi.kaoru@secioss.co.jp>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by Kaoru Sekiguchi
+(c) 2006 Kaoru Sekiguchi
+
+This library is free software; you can redistribute it and/or modify
+it under the GNU LGPL.
 
 =cut
 
